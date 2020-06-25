@@ -27,6 +27,20 @@ svg {
  background-color: #888;
  margin: 0;
 }
+#therotator {
+ position: absolute;
+ top: 5px;
+ left: 5px;
+ width: 100px;
+ height: 100px;
+ border-radius: 2px;
+ background-color: #ffee00;
+ box-shadow: 10px 10px 13px #555;
+}
+#thecubegraph {
+/* position: relative;*/
+ width: 1500px;
+}
 .shadowed {
  box-shadow: inset 10px 10px 13px #555;
 }
@@ -81,6 +95,7 @@ line {
  stroke-dasharray: 7,7;
 }
 .grapharea {
+ position: relative;
  clear: both;
  margin: 0;
  padding: 0;
@@ -236,6 +251,7 @@ input[type=range]{
 
  <div class="grapharea" id="graphareaCubeGraph">
   <svg id="thecubegraph" class="shadowed" height="500"></svg>
+  <svg id="therotator"></svg>
  </div>
 
  <script src="js/FileSaver.min.js"></script>

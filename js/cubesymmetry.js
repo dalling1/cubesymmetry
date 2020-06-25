@@ -25,9 +25,37 @@ function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function setup(){
+ // set the width of things:
  document.getElementById("graphareaCubeGraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
  document.getElementById("thecubegraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
+ // add a control point to "therotator":
+ $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
+  "fill": "#000000",
+  "stroke": "none",
+  "r": 2,
+  "cx": 50,
+  "cy": 50,
+  "id": "joystick",
+ }).appendTo("#therotator");
+ // make therotator listen for clicks:
+ document.getElementById("therotator").addEventListener("click", setRotator);
+ // set the control labels to the control values:
  setControls();
+}
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function setRotator(event){
+ // "therotator" is a "touch-pad"-like control which lets the user define two rotation angles
+ // -- these will be scaled between some max and min values according to the position on the panel
+ // -- the "joystick" is the dot marking the current value of therotator
+ var debug = false;
+ dx = document.getElementById("therotator").getBoundingClientRect().x;
+ dy = document.getElementById("therotator").getBoundingClientRect().y;
+ document.getElementById("joystick").setAttribute("cx",Math.round(event.clientX-dx));
+ document.getElementById("joystick").setAttribute("cy",Math.round(event.clientY-dy));
+ if (debug) console.log($("#joystick").attr("cx")+", "+$("#joystick").attr("cy"));
 }
 
 /* ********************************************************************************************* */
@@ -41,6 +69,9 @@ function setControls(){
  thelinewidthOutput.value=thelinewidth.value;
 }
 
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function wipeCanvas(){
 // var edgeColour = document.getElementById("edgepicker").value;
 // var axesColour = document.getElementById("axespicker").value;
