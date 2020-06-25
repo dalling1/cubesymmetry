@@ -164,14 +164,21 @@ input[type=range]{
   <!-- slider control for the size of nodes -->
   <div class="onecontrol">
    <span title="Click to reset" style="cursor:pointer;" onclick="thenodesize.value=10; thenodesizeOutput.value = thenodesize.value; drawCubeGraph();">Node size:</span><br/>
-   <input type="range" style="vertical-align:top;" min="0" max="50" step="1" value="10" id="thenodesize" oninput="thenodesizeOutput.value = thenodesize.value; drawCubeGraph();" />
+   <input type="range" style="vertical-align:top;" min="0" max="25" step="1" value="10" id="thenodesize" oninput="thenodesizeOutput.value = thenodesize.value; drawCubeGraph();" />
    <output name="thenodesizeOutputName" id="thenodesizeOutput"></output>
+  </div>
+
+  <!-- slider control for the width of lines -->
+  <div class="onecontrol">
+   <span title="Click to reset" style="cursor:pointer;" onclick="thelinewidth.value=1; thelinewidthOutput.value = thelinewidth.value; drawCubeGraph();">Line width:</span><br/>
+   <input type="range" style="vertical-align:top;" min="0" max="10" step="0.1" value="1" id="thelinewidth" oninput="thelinewidthOutput.value = thelinewidth.value; drawCubeGraph();" />
+   <output name="thelinewidthOutputName" id="thelinewidthOutput"></output>
   </div>
 
   <!-- slider control for the rotation of the cube -->
   <div class="onecontrol controlwrapper">
    <span title="Click to reset" style="cursor:pointer;" onclick="therotangle.value=400; therotangleOutput.value = therotangle.value; drawCubeGraph();">Rotation:</span><br/>
-   -360 <input type="range" style="vertical-align:top;" min="-360" max="360" step="10" value="60" id="therotangle" oninput="therotangleOutput.value = therotangle.value; drawCubeGraph();" /> 360<br/>
+   -360 <input type="range" style="vertical-align:top;" min="-360" max="360" step="1" value="-360" id="therotangle" oninput="therotangleOutput.value = therotangle.value; drawCubeGraph();" /> 360<br/>
    <output name="therotangleOutputName" id="therotangleOutput"></output>
   </div>
 

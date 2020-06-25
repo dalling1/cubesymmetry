@@ -1,12 +1,7 @@
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
-function canvasScale(pos=[0,0]){
- // scaling:
-// var offsetX = parseFloat($("#theoffsetX").val()); // pixels, but allow float
-// var offsetY = parseFloat($("#theoffsetY").val()); // pixels, but allow float
- var offsetX = 0; // zero for now but this could be a control
- var offsetY = 0;
+function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
  var canvaswidth = $('#thecubegraph').width();
  var canvasheight = $('#thecubegraph').height();
  var centreX = Math.round(canvaswidth/2) + offsetX;
@@ -43,6 +38,59 @@ function setControls(){
  theedgelengthOutput.value=theedgelength.value;
  therotangleOutput.value=therotangle.value;
  thenodesizeOutput.value=thenodesize.value;
+ thelinewidthOutput.value=thelinewidth.value;
+}
+
+function wipeCanvas(){
+// var edgeColour = document.getElementById("edgepicker").value;
+// var axesColour = document.getElementById("axespicker").value;
+// var arrowSize = parseFloat($("#thearrowsize").val());
+// var filledarrows = $("#filledarrowsbutton").prop("checked");
+// var arrowratio = Math.pow(parseFloat($("#thearrowratio").val()),2.0);
+
+ $("#thecubegraph").empty();
+ return 1;
+}
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function rotMatrixMult(M=[[1,0,0],[0,1,0],[0,0,1]],R=[0,0,0]){
+ // M has three rows, R has 3 elements
+ if (M[0].length == R.length){ // okay to multiply
+  var result = new Array(R.length);
+  result.fill(0);
+  for (var i=0;i<M.length;i++){ // loop over rows of M
+   for (var j=0;j<M[i].length;j++){ // loop over columns of M ie. elements of R
+    result[i] += M[i][j]*R[j];
+   }
+  }
+ } else {
+  var result = false;
+ }
+ return result;
+}
+
+function rotate(R,rotAngles=[0,0,0]){
+ // rotAngles should contain three values, alpha, beta and gamma, for rotation about the x-, y- and z-axes, respectively
+ for (var i=0;i<3;i++) rotAngles[i] = Math.PI*rotAngles[i]/180.0; // convert degrees to radians
+
+ var cAlpha = Math.cos(rotAngles[0]);
+ var sAlpha = Math.sin(rotAngles[0]);
+ var cBeta = Math.cos(rotAngles[1]);
+ var sBeta = Math.sin(rotAngles[1]);
+ var cGamma = Math.cos(rotAngles[2]);
+ var sGamma = Math.sin(rotAngles[2]);
+
+ var Mx = [ [1,0,0], [0,cAlpha,sAlpha], [0,-sAlpha,cAlpha]];
+ var My = [ [cBeta,0,-sBeta], [0,1,0], [sBeta,0,cBeta]];
+ var Mz = [ [cGamma,sGamma,0], [-sGamma,cGamma,0], [0,0,1]];
+
+ var Rdash = R;
+ Rdash = rotMatrixMult(Mx,Rdash);
+ Rdash = rotMatrixMult(My,Rdash);
+ Rdash = rotMatrixMult(Mz,Rdash);
+ return Rdash;
 }
 
 /* ********************************************************************************************* */
@@ -50,7 +98,7 @@ function setControls(){
 /* ********************************************************************************************* */
 function createCubeGraph(){
  // create an adjacency matrix for the cube graph:
- Nnodes = 8;
+ var Nnodes = 8;
  adjMatrix = new Array();
  for (var i=0;i<Nnodes;i++){
   var tmp = new Array(Nnodes);
@@ -80,33 +128,45 @@ function createCubeGraph(){
  position[4] = [0,1,0];
  position[5] = [0,1,1];
  position[6] = [1,1,1];
- position[7] = [1,0,1];
+ position[7] = [1,1,0];
 }
 
 
 function drawCubeGraph(){
- // create the graph
+ // clear the existing SVG element:
+ wipeCanvas();
+ // create the graph:
  createCubeGraph();
 
- // get user control values
- var rotangle = $("#therotangle").val();
+ // get user control values:
+ var rotangle = parseFloat($("#therotangle").val());
  var nodeRadius = $("#thenodesize").val();
- var lineWidth = nodeRadius; // for now!
+ var lineWidth = $("#thelinewidth").val();
 
- // add a marker for each node
- for (var i=0;i<Nnodes;i++){
-  screenpositionI = canvasScale(position[i]);
+ /*
+  This approach draws the nodes first, and then the edges.
+  We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
+ */
+
+ // add a marker for each node:
+ for (var i=0;i<position.length;i++){
+  screenpositionI = canvasScale3D(rotate(position[i],[rotangle,30,0]));
   $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
    "fill": "#000000",
    "stroke": "none",
    "r": nodeRadius,
    "cx": screenpositionI[0],
    "cy": screenpositionI[1],
+   // give the node an id just in case we need it:
+   "id": "node_"+i,
   }).appendTo("#thecubegraph");
-  // and draw any edges to "later" nodes (to avoid duplicate edges)
-  for (var j=i;j<Nnodes;j++){
+ }
+ for (var i=0;i<position.length;i++){
+  // draw any edges to "later" nodes (to avoid duplicate edges)
+  for (var j=i;j<position.length;j++){
    if (adjMatrix[i][j]){ // yes, connect nodes i and j
-    screenpositionJ = canvasScale(position[j]);
+    screenpositionI = canvasScale3D(rotate(position[i],[rotangle,30,0]));
+    screenpositionJ = canvasScale3D(rotate(position[j],[rotangle,30,0]));
     $(document.createElementNS("http://www.w3.org/2000/svg","line")).attr({
      "stroke": "#ff0000",
      "stroke-dasharray": "none",
@@ -117,7 +177,7 @@ function drawCubeGraph(){
      "x2": screenpositionJ[0],
      "y2": screenpositionJ[1],
      // give the edge an id just in case we need it:
-     "id": i+"_"+j,
+     "id": "edge_"+i+"_"+j,
     }).appendTo("#thecubegraph");
    }
   }
