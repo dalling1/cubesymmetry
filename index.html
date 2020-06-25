@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Cube Symmetry</title>
+<link href="https://fonts.googleapis.com/css?family=Fredoka+One|Open+Sans+Condensed:300&display=swap" rel="stylesheet">
+
+<link href="slideCheckbox.css" rel="stylesheet"/>
+<style>
+html {
+ background-color: #444;
+ color: white;
+ font-family: "Open Sans Condensed", sans-serif;
+ scroll-behavior: smooth;
+}
+h1,h3 {
+ text-align: center;
+}
+button {
+ font-family: "Open Sans Condensed", sans-serif;
+}
+a {
+ color: #99d;
+}
+svg {
+ background-color: #888;
+ margin: 0;
+}
+.shadowed {
+ box-shadow: inset 10px 10px 13px #555;
+}
+rect {
+ fill: none;
+ pointer-events: all;
+}
+.node {
+ fill: #ccc;
+ stroke: #000;
+ stroke-width: 1.5px;
+ stroke-width: 1px;
+ box-shadow: 5px 5px 3px #fff;
+}
+line {
+ stroke-linecap: round;
+ stroke-linejoin: miter;
+}
+.productnode {
+ fill: #367;
+ stroke: #000;
+ stroke-width: 1.5px;
+ paint-order: stroke;
+ box-shadow: 5px 5px 3px #fff;
+}
+.productupdatefn,
+.productaddress {
+ font-family: "Fredoka One", sans-serif;
+ stroke: black;
+ stroke-width: 1px;
+ paint-order: stroke;
+ fill: #ff8;
+ font-size: 14px;
+}
+.examinenode {
+ fill: #ff0;
+ stroke: cyan;
+}
+.node.nearby {
+  fill: #ff0;
+}
+
+.link {
+  stroke: white;
+}
+.productlink {
+  stroke: #ff0;
+}
+.delimiter {
+ stroke: #aaa;
+ stroke-width: 1px;
+ stroke-dasharray: 7,7;
+}
+.grapharea {
+ clear: both;
+ margin: 0;
+ padding: 0;
+ overflow-x: auto;
+ overflow-y: hidden;
+}
+#cubeGraphControls {
+ max-width: 90%;
+ background-color: #999;
+ padding: 15px;
+ margin: 8px;
+ margin-left: 3px;
+ margin-top: 3px;
+ border: 2px solid black;
+ box-shadow: inset -4px -4px 6px #666, -3px 3px 5px #222;
+ border-radius: 10px;
+}
+.slideCheckBox {
+ display: inline-block;
+}
+output {
+ display: inline-block; /* to let us fix the width */
+ width: 20px; /* we don't want the element size to change with the string length of the value it shows */
+}
+.onecontrol {
+ vertical-align: middle;
+ display: inline-block;
+ text-align: center;
+ margin: 0 4px;
+}
+#textgraphs {
+ /* height: 80vh; */
+ min-height: 150px;
+}
+input[type=range]{
+ width: 90px;
+}
+.controlwrapper {
+ background-color: #777;
+ box-shadow: 1px 1px 1px #333;
+ padding: 3px;
+ border: 0px solid #cc8;
+ text-align:center;
+}
+.wrappertext {
+ text-decoration: underline;
+}
+#cubeGraphControls .controlwrapper .slider:before {
+ background-color: white;
+}
+#cubeGraphControls .controlwrapper .slider,
+#cubeGraphControls .controlwrapper input:checked + .slider {
+ background-color: #e83;
+}
+.postcontrols {
+ margin: 8px;
+ margin-top: 0;
+ margin-left: 3px;
+}
+.postcontrols .onecontrol {
+ vertical-align: top;
+}
+.smaller {
+ font-size: 14px;
+ vertical-align: top;
+}
+</style>
+<body onload="setControls()">
+ <div id="topmatter">
+  <h1>Cube Symmetry</h1>
+ </div>
+
+ <div id="cubeGraphControls">
+  <div class="onecontrol">
+   <span title="Click to reset" style="cursor:pointer;" onclick="thespread.value=4; thespreadOutput.value = thespread.value; newrestart();">Edge length:</span><br/>
+   <input type="range" style="vertical-align:top;" min="4" max="50" step="1" value="4" id="thespread" oninput="thespreadOutput.value = thespread.value; newrestart();" />
+   <output name="thespreadOutputName" id="thespreadOutput"></output>
+  </div>
+
+  <!-- slider control for the strength of repulsion between nodes -->
+  <div class="onecontrol">
+   <span title="Click to reset" style="cursor:pointer;" onclick="thecharge.value=400; thechargeOutput.value = thecharge.value; newrestart();">Repulsion:</span><br/>
+   <input type="range" style="vertical-align:top;" min="0" max="600" step="20" value="180" id="thecharge" oninput="thechargeOutput.value = thecharge.value; newrestart();" />
+   <output name="thechargeOutputName" id="thechargeOutput"></output>
+  </div>
+
+  <!-- control for SVG box physics boundary (constrain elements within the box on the page) -->
+  <div class="onecontrol">Boundary<br/><label class="switch"><input type="checkbox" id="theboundaryFP" onchange="newrestart()" ><span class="slider round"></span></label></div>
+
+  <!-- control for changing the edge width based on either the graph the edge is part of or distance from the root node (depth) -->
+  <div class="onecontrol controlwrapper">
+   <span class="wrappertext">Edge thickness</span><br/>
+   <div class="slideCheckbox">
+    low
+    <label class="switch">
+     <input type="checkbox" checked id="thethicknessFP" onchange="newrestart()" >
+     <span class="slider round"></span>
+    </label>
+    high
+   </div>
+  </div>
+
+  <!-- control for setting whether the node labels should be on all the time, or only shown when hovering near each node -->
+  <div class="onecontrol controlwrapper">
+   <span class="wrappertext">Show labels</span><br/>
+   <div class="slideCheckbox">
+    hover
+    <label class="switch">
+     <input type="checkbox" id="theshowlabelsFP" onchange="showAllLabels();"/>
+     <span class="slider round"></span>
+    </label>
+    always
+   </div>
+  </div>
+
+  <!-- control for choosing which label to show on nodes -->
+  <div class="onecontrol controlwrapper">
+   <span class="wrappertext">Node labels</span><br/>
+   <select id="thelabeltype" onchange="showAllLabels();">
+    <option value="none">none</option>
+    <option value="address" selected="selected">Node address</option>
+   </select>
+  </div>
+
+  <!-- button to make the graph -->
+  <button class="onecontrol" style="font-size:2em;" onclick="makeCubeGraph();">GO</button>
+ </div>
+
+ <!-- some buttons for use once the free product graph has been created -->
+ <div class="postcontrols">
+  <!-- save the free product graph as a PDF file -->
+  <button onClick="savePDF()" title="Saves a PDF file">Save PDF</button>
+  <!-- save the free product graph as a PNG file (optionally with a transparent background) -->
+  <div class="onecontrol">
+   <button onClick="savePNG()" title="Saves a PNG file">Save PNG</button><label for="transparencybutton"><br/><span class="smaller">Transparent</span><input type="checkbox" id="thetransparencybutton" /></label>
+  </div>
+  <!-- apply a nudge to each node -->
+  <button onclick="bump();">Bump nodes</button><br/>
+ </div>
+
+ <div class="grapharea" id="graphareaCubeGraph">
+  <svg id="thecubegraph" class="shadowed" height="500"></svg>
+ </div>
+
+ <script src="js/FileSaver.min.js"></script>
+ <script src="js/jspdf.min.js"></script>
+ <script src="js/rgbcolor.js"></script>
+ <script src="js/saveSvgAsPng.js"></script>
+ <script src="js/svg2pdf.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+ <script src="js/cubesymmetry.js"></script>
+ <script>
+  /* Set the control displays to the default value */
+  function setControls(){
+   thedepthOutput.value=thedepth.value;
+   thechargeOutput.value=thecharge.value;
+   thespreadOutput.value=thespread.value;
+  }
+ </script>
+</body>
+</html>
