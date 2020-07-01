@@ -36,6 +36,23 @@ svg {
  border-radius: 2px;
  background-color: #ffee00;
  box-shadow: 10px 10px 13px #555;
+ cursor: move;
+}
+.rotatorlabel {
+ position: absolute;
+ top: 5px;
+ left: 5px;
+ color: #00f;
+ opacity: 0.8;
+ width: 100px;
+ text-align: center;
+ transition: all ease 1.2s;
+ pointer-events: none;
+}
+.rotatorlabel:hover,
+#therotator:hover + .rotatorlabel {
+ opacity: 0.1;
+ transition: all ease 0.2s;
 }
 #thecubegraph {
 /* position: relative;*/
@@ -169,12 +186,14 @@ input[type=range]{
  </div>
 
  <div id="cubeGraphControls">
-  <!-- slider control for the length of edges -->
+  <!-- unused slider control for the length of edges -->
+<!--
   <div class="onecontrol">
    <span title="Click to reset" style="cursor:pointer;" onclick="theedgelength.value=100; theedgelengthOutput.value = theedgelength.value; drawCubeGraph();">Edge length:</span><br/>
    <input type="range" style="vertical-align:top;" min="10" max="300" step="10" value="100" id="theedgelength" oninput="theedgelengthOutput.value = theedgelength.value; drawCubeGraph();" />
    <output name="theedgelengthOutputName" id="theedgelengthOutput"></output>
   </div>
+-->
 
   <!-- slider control for the size of nodes -->
   <div class="onecontrol">
@@ -190,11 +209,20 @@ input[type=range]{
    <output name="thelinewidthOutputName" id="thelinewidthOutput"></output>
   </div>
 
-  <!-- slider control for the rotation of the cube -->
+  <!-- unused slider control for the rotation of the cube -->
+<!--
   <div class="onecontrol controlwrapper">
    <span title="Click to reset" style="cursor:pointer;" onclick="therotangle.value=400; therotangleOutput.value = therotangle.value; drawCubeGraph();">Rotation:</span><br/>
    -360 <input type="range" style="vertical-align:top;" min="-360" max="360" step="1" value="-360" id="therotangle" oninput="therotangleOutput.value = therotangle.value; drawCubeGraph();" /> 360<br/>
    <output name="therotangleOutputName" id="therotangleOutput"></output>
+  </div>
+-->
+
+  <!-- slider control for the overall scale of the cube -->
+  <div class="onecontrol controlwrapperx">
+   <span title="Click to reset" style="cursor:pointer;" onclick="thescale.value=100; thescaleOutput.value = thescale.value; drawCubeGraph();">Zoom:</span><br/>
+   <input type="range" style="vertical-align:top;" min="10" max="400" step="10" value="100" id="thescale" oninput="thescaleOutput.value = thescale.value; drawCubeGraph();" />
+   <output name="thescaleOutputName" id="thescaleOutput"></output>
   </div>
 
   <!-- control for SVG box physics boundary (constrain elements within the box on the page) -->
@@ -250,8 +278,9 @@ input[type=range]{
  </div>
 
  <div class="grapharea" id="graphareaCubeGraph">
-  <svg id="thecubegraph" class="shadowed" height="500"></svg>
-  <svg id="therotator"></svg>
+  <svg id="thecubegraph" class="shadowed" height="700"></svg>
+  <svg id="therotator" class="draggable"></svg>
+  <div class="rotatorlabel">rotate</div>
  </div>
 
  <script src="js/FileSaver.min.js"></script>

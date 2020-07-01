@@ -6,20 +6,30 @@ function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
  var canvasheight = $('#thecubegraph').height();
  var centreX = Math.round(canvaswidth/2) + offsetX;
  var centreY = Math.round(canvasheight/2) + offsetY;
- var useScale = 100;
+// var useScale = 250; // pick something reasonable (useScale = one unit of the chosen coordinate space for the cube nodes)
+ var useScale = parseFloat($("#thescale").val());
  if (pos.length==3){
   // single coordinate given as input:
-  var newpos = [centreX + useScale*pos[0], canvasheight - (centreY + useScale*pos[1])];
+  var p = perspective(pos[2]);
+  var newpos = [centreX + useScale*pos[0]*p, canvasheight - (centreY + useScale*pos[1]*p)];
  } else {
   // array of coordinates given as input:
   var newpos = Array(pos.length);
   for (var i=0;i<pos.length;i++){
-   newpos[i] = [centreX + useScale*pos[i][0], canvasheight - (centreY + useScale*pos[i][1])];
+   var p = perspective(pos[i][2]);
+   newpos[i] = [centreX + useScale*pos[i][0]*p, canvasheight - (centreY + useScale*pos[i][1]*p)];
   }
  }
  return newpos;
 }
 
+function perspective(z){
+ var z1=-2;
+ var z2=2;
+ var a=0.5;
+ var p = (1-a)+(z2+z)*2*a/(z2-z1); // linear scaling from 1-a to 1+a between depths z1 and z2 (passing through 1 at z=0)
+ return p;
+}
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
@@ -32,16 +42,67 @@ function setup(){
  $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
   "fill": "#000000",
   "stroke": "none",
-  "r": 2,
-  "cx": 50,
-  "cy": 50,
+  "r": 4,
+  "cx": parseFloat($("#therotator").width()/2), // centred
+  "cy": parseFloat($("#therotator").width()/2), // centred
   "id": "joystick",
+  "class": "draggable",
  }).appendTo("#therotator");
+ // drag on therotator (which moves the "joystick")
+ makeDraggable($("#therotator"));
  // make therotator listen for clicks:
- document.getElementById("therotator").addEventListener("click", setRotator);
+// document.getElementById("therotator").addEventListener("click", setRotator);
+ // or, make therotator listen for mouse movements:
+// document.getElementById("therotator").addEventListener("mousemove", setRotator);
+// document.getElementById("joystick").addEventListener("ondrag", setRotator);
+
  // set the control labels to the control values:
  setControls();
+
+ // start by drawing the cube:
+ drawCubeGraph();
 }
+
+/* not using this:
+function drag(evt){
+ dx = document.getElementById("therotator").getBoundingClientRect().x;
+ dy = document.getElementById("therotator").getBoundingClientRect().y;
+ document.getElementById("joystick").setAttribute("cx",Math.round(evt.clientX-dx));
+ document.getElementById("joystick").setAttribute("cy",Math.round(evt.clientY-dy));
+}
+*/
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+selectedElement = null;
+// http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+function makeDraggable(obj){
+ var svg = obj[0];
+ svg.addEventListener('mousedown', startDrag);
+ svg.addEventListener('mousemove', drag);
+ svg.addEventListener('mouseup', endDrag);
+// svg.addEventListener('mouseleave', endDrag);
+ function startDrag(evt){
+  if (evt.target.classList.contains('draggable')){
+   selectedElement = evt.target;
+  }
+ }
+ function drag(evt){
+  if (selectedElement) {
+    evt.preventDefault();
+//    var dragX = evt.clientX;
+//    var dragY = evt.clientY;
+//    selectedElement.setAttributeNS(null, "x", dragX);
+//    selectedElement.setAttributeNS(null, "y", dragY);
+    setRotator(evt);
+  }
+ }
+ function endDrag(evt){
+  selectedElement = null;
+ }
+}
+
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
@@ -51,11 +112,19 @@ function setRotator(event){
  // -- these will be scaled between some max and min values according to the position on the panel
  // -- the "joystick" is the dot marking the current value of therotator
  var debug = false;
- dx = document.getElementById("therotator").getBoundingClientRect().x;
- dy = document.getElementById("therotator").getBoundingClientRect().y;
+ var dx = document.getElementById("therotator").getBoundingClientRect().x;
+ var dy = document.getElementById("therotator").getBoundingClientRect().y;
+ var mx = document.getElementById("therotator").getBoundingClientRect().height;
+ var my = document.getElementById("therotator").getBoundingClientRect().width;
+ // move the joystick marker to the clicked position:
  document.getElementById("joystick").setAttribute("cx",Math.round(event.clientX-dx));
  document.getElementById("joystick").setAttribute("cy",Math.round(event.clientY-dy));
- if (debug) console.log($("#joystick").attr("cx")+", "+$("#joystick").attr("cy"));
+ var cx = $("#joystick").attr("cx");
+ var cy = $("#joystick").attr("cy");
+ var px = parseFloat(cx/mx);
+ var py = parseFloat(cy/my);
+ if (debug) console.log(px+", "+py);
+ drawCubeGraph();
 }
 
 /* ********************************************************************************************* */
@@ -63,10 +132,11 @@ function setRotator(event){
 /* ********************************************************************************************* */
 /* Set the control displays to their current value */
 function setControls(){
- theedgelengthOutput.value=theedgelength.value;
- therotangleOutput.value=therotangle.value;
+//unused: theedgelengthOutput.value=theedgelength.value;
+//unused: therotangleOutput.value=therotangle.value;
  thenodesizeOutput.value=thenodesize.value;
  thelinewidthOutput.value=thelinewidth.value;
+ thescaleOutput.value=thescale.value;
 }
 
 /* ********************************************************************************************* */
@@ -103,7 +173,7 @@ function rotMatrixMult(M=[[1,0,0],[0,1,0],[0,0,1]],R=[0,0,0]){
 }
 
 function rotate(R,rotAngles=[0,0,0]){
- // rotAngles should contain three values, alpha, beta and gamma, for rotation about the x-, y- and z-axes, respectively
+ // rotAngles must contain three values, alpha, beta and gamma, for rotation about the x-, y- and z-axes, respectively
  for (var i=0;i<3;i++) rotAngles[i] = Math.PI*rotAngles[i]/180.0; // convert degrees to radians
 
  var cAlpha = Math.cos(rotAngles[0]);
@@ -152,14 +222,14 @@ function createCubeGraph(){
  adjMatrix[7][3]=1;   adjMatrix[7][4]=1;  adjMatrix[7][6]=1;
 
  // set the node position: (positive y direction is up, positive z direction is away)
- position[0] = [0,0,0];
- position[1] = [0,0,1];
- position[2] = [1,0,1];
- position[3] = [1,0,0];
- position[4] = [0,1,0];
- position[5] = [0,1,1];
+ position[0] = [-1,-1,-1];
+ position[1] = [-1,-1,1];
+ position[2] = [1,-1,1];
+ position[3] = [1,-1,-1];
+ position[4] = [-1,1,-1];
+ position[5] = [-1,1,1];
  position[6] = [1,1,1];
- position[7] = [1,1,0];
+ position[7] = [1,1,-1];
 }
 
 
@@ -169,8 +239,23 @@ function drawCubeGraph(){
  // create the graph:
  createCubeGraph();
 
+ // parameters of the rotation control pad
+ var mx = document.getElementById("therotator").getBoundingClientRect().height;
+ var my = document.getElementById("therotator").getBoundingClientRect().width;
+ var cx = $("#joystick").attr("cx");
+ var cy = $("#joystick").attr("cy");
+ var px = parseFloat(cx/mx);
+ var py = parseFloat(cy/my);
+ // azimuth and elevation limits
+ var azRange = [-180, 180];
+ var elRange = [-90, 90];
+ // spherical rotation parameters
+ var az = (azRange[1]-azRange[0])*px + azRange[0];
+ var el = (elRange[1]-elRange[0])*py + elRange[0];
+//console.log(az+", "+el);
+
  // get user control values:
- var rotangle = parseFloat($("#therotangle").val());
+//unused var rotangle = parseFloat($("#therotangle").val());
  var nodeRadius = $("#thenodesize").val();
  var lineWidth = $("#thelinewidth").val();
 
@@ -179,25 +264,13 @@ function drawCubeGraph(){
   We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
  */
 
- // add a marker for each node:
- for (var i=0;i<position.length;i++){
-  screenpositionI = canvasScale3D(rotate(position[i],[rotangle,30,0]));
-  $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
-   "fill": "#000000",
-   "stroke": "none",
-   "r": nodeRadius,
-   "cx": screenpositionI[0],
-   "cy": screenpositionI[1],
-   // give the node an id just in case we need it:
-   "id": "node_"+i,
-  }).appendTo("#thecubegraph");
- }
+ // add a line for each edge:
  for (var i=0;i<position.length;i++){
   // draw any edges to "later" nodes (to avoid duplicate edges)
   for (var j=i;j<position.length;j++){
    if (adjMatrix[i][j]){ // yes, connect nodes i and j
-    screenpositionI = canvasScale3D(rotate(position[i],[rotangle,30,0]));
-    screenpositionJ = canvasScale3D(rotate(position[j],[rotangle,30,0]));
+    var screenpositionI = canvasScale3D(rotate(position[i],[el,az,0]));
+    var screenpositionJ = canvasScale3D(rotate(position[j],[el,az,0]));
     $(document.createElementNS("http://www.w3.org/2000/svg","line")).attr({
      "stroke": "#ff0000",
      "stroke-dasharray": "none",
@@ -213,5 +286,23 @@ function drawCubeGraph(){
    }
   }
  }
+
+
+ // add a marker for each node:
+ for (var i=0;i<position.length;i++){
+  var positionRotated = rotate(position[i],[el,az,0]);
+  var screenpositionI = canvasScale3D(positionRotated);
+  var p = perspective(positionRotated[2]);
+  $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
+   "fill": "#000000",
+   "stroke": "none",
+   "r": nodeRadius*Math.pow(p,2),
+   "cx": screenpositionI[0],
+   "cy": screenpositionI[1],
+   // give the node an id just in case we need it:
+   "id": "node_"+i,
+  }).appendTo("#thecubegraph");
+ }
+
 
 }
