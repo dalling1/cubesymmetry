@@ -2,22 +2,25 @@
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
+ var originX = 0;
+ var originY = 0;
  var canvaswidth = $('#thecubegraph').width();
  var canvasheight = $('#thecubegraph').height();
- var centreX = Math.round(canvaswidth/2) + offsetX;
- var centreY = Math.round(canvasheight/2) + offsetY;
+ var centreX = Math.round(canvaswidth/2) + originX;
+ var centreY = Math.round(canvasheight/2) + originY;
+
 // var useScale = 250; // pick something reasonable (useScale = one unit of the chosen coordinate space for the cube nodes)
  var useScale = parseFloat($("#thescale").val());
  if (pos.length==3){
   // single coordinate given as input:
   var p = perspective(pos[2]);
-  var newpos = [centreX + useScale*pos[0]*p, canvasheight - (centreY + useScale*pos[1]*p)];
+  var newpos = [centreX + useScale*(p*pos[0]+offsetX), canvasheight - (centreY + useScale*(p*pos[1]+offsetY))];
  } else {
   // array of coordinates given as input:
   var newpos = Array(pos.length);
   for (var i=0;i<pos.length;i++){
    var p = perspective(pos[i][2]);
-   newpos[i] = [centreX + useScale*pos[i][0]*p, canvasheight - (centreY + useScale*pos[i][1]*p)];
+   newpos[i] = [centreX + useScale*(p*pos[i][0]+offsetX), canvasheight - (centreY + useScale*(p*pos[i][1]+offsetY))];
   }
  }
  return newpos;
@@ -136,6 +139,7 @@ function setControls(){
 //unused: therotangleOutput.value=therotangle.value;
  thenodesizeOutput.value=thenodesize.value;
  thelinewidthOutput.value=thelinewidth.value;
+ thecubegapOutput.value=thecubegap.value;
  thescaleOutput.value=thescale.value;
 }
 
@@ -208,8 +212,8 @@ function createCubeGraph(){
  }
 
  // create a position array for the cube graph:
- position = new Array(Nnodes);
- position.fill([0,0,0]); // initialise with all nodes at (0,0,0) (later we might do proper 3D rotation and projection)
+ positionOriginal = new Array(Nnodes);
+ positionOriginal.fill([0,0,0]); // initialise with all nodes at (0,0,0) (later we might do proper 3D rotation and projection)
 
  // set up the neighbour relationships:
  adjMatrix[0][1]=1;   adjMatrix[0][3]=1;  adjMatrix[0][4]=1;
@@ -222,14 +226,14 @@ function createCubeGraph(){
  adjMatrix[7][3]=1;   adjMatrix[7][4]=1;  adjMatrix[7][6]=1;
 
  // set the node position: (positive y direction is up, positive z direction is away)
- position[0] = [-1,-1,-1];
- position[1] = [-1,-1,1];
- position[2] = [1,-1,1];
- position[3] = [1,-1,-1];
- position[4] = [-1,1,-1];
- position[5] = [-1,1,1];
- position[6] = [1,1,1];
- position[7] = [1,1,-1];
+ positionOriginal[0] = [-1,-1,-1];
+ positionOriginal[1] = [-1,-1,1];
+ positionOriginal[2] = [1,-1,1];
+ positionOriginal[3] = [1,-1,-1];
+ positionOriginal[4] = [-1,1,-1];
+ positionOriginal[5] = [-1,1,1];
+ positionOriginal[6] = [1,1,1];
+ positionOriginal[7] = [1,1,-1];
 }
 
 
@@ -238,6 +242,24 @@ function drawCubeGraph(){
  wipeCanvas();
  // create the graph:
  createCubeGraph();
+
+ // get some user control values:
+ var cubeGap = $("#thecubegap").val();
+
+ // draw the first cube:
+ drawOneCube(positionOriginal,cubeGap/2,0);
+
+ // draw the second cube:
+ drawOneCube(positionOriginal,-cubeGap/2,0);
+
+}
+
+
+function drawOneCube(position,offsetX=0,offsetY=0){
+ /*
+  This approach draws the nodes first, and then the edges.
+  We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
+ */
 
  // parameters of the rotation control pad
  var mx = document.getElementById("therotator").getBoundingClientRect().height;
@@ -255,26 +277,35 @@ function drawCubeGraph(){
 //console.log(az+", "+el);
 
  // get user control values:
-//unused var rotangle = parseFloat($("#therotangle").val());
  var nodeRadius = $("#thenodesize").val();
  var lineWidth = $("#thelinewidth").val();
+//unused var rotangle = parseFloat($("#therotangle").val());
 
- /*
-  This approach draws the nodes first, and then the edges.
-  We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
- */
+ var N = $("#thecubegraph").children().length;
+ // add a new SVG group for this cube:
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({
+  "id": "group"+N,
+ }).appendTo("#thecubegraph");
+
 
  // add a line for each edge:
  for (var i=0;i<position.length;i++){
   // draw any edges to "later" nodes (to avoid duplicate edges)
   for (var j=i;j<position.length;j++){
    if (adjMatrix[i][j]){ // yes, connect nodes i and j
-    var screenpositionI = canvasScale3D(rotate(position[i],[el,az,0]));
-    var screenpositionJ = canvasScale3D(rotate(position[j],[el,az,0]));
+    var positionIRotated = rotate(position[i],[el,az,0]);
+    var positionJRotated = rotate(position[j],[el,az,0]);
+    var pI = perspective(positionIRotated[2]); // perspective scaling value
+    var pJ = perspective(positionJRotated[2]); // perspective scaling value
+
+    var screenpositionI = canvasScale3D(positionIRotated,offsetX,offsetY);
+    var screenpositionJ = canvasScale3D(positionJRotated,offsetX,offsetY);
+
     $(document.createElementNS("http://www.w3.org/2000/svg","line")).attr({
-     "stroke": "#ff0000",
+//     "stroke": "#ff0000",
+     "stroke": (N==0?"#ff0000":"#00ff00"),
      "stroke-dasharray": "none",
-     "stroke-width": lineWidth,
+     "stroke-width": lineWidth*Math.pow(Math.max(pI,pJ),2),
      "stroke-linecap": "round",
      "x1": screenpositionI[0],
      "y1": screenpositionI[1],
@@ -282,17 +313,18 @@ function drawCubeGraph(){
      "y2": screenpositionJ[1],
      // give the edge an id just in case we need it:
      "id": "edge_"+i+"_"+j,
-    }).appendTo("#thecubegraph");
+    }).appendTo("#group"+N);
    }
   }
  }
+//    }).appendTo("#thecubegraph");
 
 
  // add a marker for each node:
  for (var i=0;i<position.length;i++){
   var positionRotated = rotate(position[i],[el,az,0]);
-  var screenpositionI = canvasScale3D(positionRotated);
-  var p = perspective(positionRotated[2]);
+  var p = perspective(positionRotated[2]); // perspective scaling value
+  var screenpositionI = canvasScale3D(positionRotated,offsetX,offsetY);
   $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
    "fill": "#000000",
    "stroke": "none",
@@ -301,8 +333,7 @@ function drawCubeGraph(){
    "cy": screenpositionI[1],
    // give the node an id just in case we need it:
    "id": "node_"+i,
-  }).appendTo("#thecubegraph");
+  }).appendTo("#group"+N);
  }
-
 
 }

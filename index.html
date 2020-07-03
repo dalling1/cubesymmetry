@@ -197,8 +197,8 @@ input[type=range]{
 
   <!-- slider control for the size of nodes -->
   <div class="onecontrol">
-   <span title="Click to reset" style="cursor:pointer;" onclick="thenodesize.value=10; thenodesizeOutput.value = thenodesize.value; drawCubeGraph();">Node size:</span><br/>
-   <input type="range" style="vertical-align:top;" min="0" max="25" step="1" value="10" id="thenodesize" oninput="thenodesizeOutput.value = thenodesize.value; drawCubeGraph();" />
+   <span title="Click to reset" style="cursor:pointer;" onclick="thenodesize.value=6; thenodesizeOutput.value = thenodesize.value; drawCubeGraph();">Node size:</span><br/>
+   <input type="range" style="vertical-align:top;" min="0" max="25" step="1" value="6" id="thenodesize" oninput="thenodesizeOutput.value = thenodesize.value; drawCubeGraph();" />
    <output name="thenodesizeOutputName" id="thenodesizeOutput"></output>
   </div>
 
@@ -207,6 +207,13 @@ input[type=range]{
    <span title="Click to reset" style="cursor:pointer;" onclick="thelinewidth.value=1; thelinewidthOutput.value = thelinewidth.value; drawCubeGraph();">Line width:</span><br/>
    <input type="range" style="vertical-align:top;" min="0" max="10" step="0.1" value="1" id="thelinewidth" oninput="thelinewidthOutput.value = thelinewidth.value; drawCubeGraph();" />
    <output name="thelinewidthOutputName" id="thelinewidthOutput"></output>
+  </div>
+
+  <!-- slider control for the separation of the cube copies -->
+  <div class="onecontrol">
+   <span title="Click to reset" style="cursor:pointer;" onclick="thecubegap.value=-5; thecubegapOutput.value = thecubegap.value; drawCubeGraph();">Cube offset:</span><br/>
+   <input type="range" style="vertical-align:top;" min="-10" max="10" step="0.1" value="-5" id="thecubegap" oninput="thecubegapOutput.value = thecubegap.value; drawCubeGraph();" />
+   <output name="thecubegapOutputName" id="thecubegapOutput"></output>
   </div>
 
   <!-- unused slider control for the rotation of the cube -->
