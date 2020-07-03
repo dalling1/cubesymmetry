@@ -211,9 +211,13 @@ function createCubeGraph(){
   adjMatrix.push(tmp);
  }
 
- // create a position array for the cube graph:
+ // create position and label arrays for the cube graph:
  positionOriginal = new Array(Nnodes);
- positionOriginal.fill([0,0,0]); // initialise with all nodes at (0,0,0) (later we might do proper 3D rotation and projection)
+ positionOriginal.fill([0,0,0]); // initialise all nodes at (0,0,0)
+ labelsOriginal = new Array(Nnodes);
+ for (var i=0;i<Nnodes;i++){
+  labelsOriginal[i] = String(i);
+ }
 
  // set up the neighbour relationships:
  adjMatrix[0][1]=1;   adjMatrix[0][3]=1;  adjMatrix[0][4]=1;
@@ -234,6 +238,7 @@ function createCubeGraph(){
  positionOriginal[5] = [-1,1,1];
  positionOriginal[6] = [1,1,1];
  positionOriginal[7] = [1,1,-1];
+
 }
 
 
@@ -247,15 +252,15 @@ function drawCubeGraph(){
  var cubeGap = $("#thecubegap").val();
 
  // draw the first cube:
- drawOneCube(positionOriginal,cubeGap/2,0);
+ drawOneCube(positionOriginal,labelsOriginal,cubeGap/2,0);
 
  // draw the second cube:
- drawOneCube(positionOriginal,-cubeGap/2,0);
+ drawOneCube(positionOriginal,labelsOriginal,-cubeGap/2,0);
 
 }
 
 
-function drawOneCube(position,offsetX=0,offsetY=0){
+function drawOneCube(position,labels,offsetX=0,offsetY=0){
  /*
   This approach draws the nodes first, and then the edges.
   We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
@@ -334,6 +339,35 @@ function drawOneCube(position,offsetX=0,offsetY=0){
    // give the node an id just in case we need it:
    "id": "node_"+i,
   }).appendTo("#group"+N);
+ }
+
+
+ // add a label for each node:
+ var labelOffsetX = 10;
+ var labelOffsetY = 10;
+ var fontSize = 20;
+ var textAngle = 0;
+ var textColour = "#ffff00";
+ for (var i=0;i<position.length;i++){
+  var LpositionRotated = rotate(position[i],[el,az,0]);
+  var p = perspective(LpositionRotated[2]); // perspective scaling value
+  var LscreenpositionI = canvasScale3D(LpositionRotated,offsetX,offsetY);
+  var newText = document.createElementNS("http://www.w3.org/2000/svg","text");
+  $(newText).attr({
+   "fill": textColour,
+   "font-size": fontSize,
+   "x": LscreenpositionI[0]+labelOffsetX,
+   "y": LscreenpositionI[1]+labelOffsetY,
+   "transform": "rotate("+textAngle+","+(LscreenpositionI[0]+labelOffsetX)+","+(LscreenpositionI[1]+labelOffsetY)+")",
+   "style": "dominant-baseline:middle; text-anchor:left;", // left, middle
+   "id": "label_"+i,
+  });
+
+  // the text node has been created, so insert the node's label
+  var textNode = document.createTextNode(labels[i]);
+  newText.appendChild(textNode);
+  document.getElementById("group"+N).appendChild(newText);
+
  }
 
 }
