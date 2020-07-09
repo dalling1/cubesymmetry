@@ -69,6 +69,8 @@ function perspective(z){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function setup(){
+ // clean up first (and set up the SVG defs):
+ wipeCanvas();
  // set the width of things:
  document.getElementById("graphareaCubeGraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
  document.getElementById("thecubegraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
@@ -152,6 +154,12 @@ function highlightNodes(event){
 
  var mouseX = Math.round(event.clientX-dx);
  var mouseY = Math.round(event.clientY-dy);
+
+ var thenode = nearestNode(mouseX,mouseY);
+ $(".node").attr("fill","#000000"); // turn off highlighting for all nodes
+ if (thenode != null){ // but add it to the nearest node (in range)
+  $("#node_"+thenode).attr("fill","#ff0000");
+ }
 }
 
 /* ********************************************************************************************* */
@@ -226,6 +234,16 @@ function wipeCanvas(){
 // var arrowratio = Math.pow(parseFloat($("#thearrowratio").val()),2.0);
 
  $("#thecubegraph").empty();
+ // re-add the required defs:
+ if (1) document.getElementById("thecubegraph").insertAdjacentHTML("afterbegin",'\
+  <defs>\
+    <filter id="f1" x="0" y="0" width="200%" height="200%">\
+      <feOffset result="offOut" in="SourceAlpha" dx="2" dy="2" />\
+      <feGaussianBlur result="blurOut" in="offOut" stdDeviation="1" />\
+      <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
+    </filter>\
+  </defs>');
+
  return 1;
 }
 
@@ -353,7 +371,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
  var lineWidth = $("#thelinewidth").val();
 //unused var rotangle = parseFloat($("#therotangle").val());
 
- var N = $("#thecubegraph").children().length;
+ var N = $("#thecubegraph").children().length - 1; // -1 because the <defs> are the first child...
  // add a new SVG group for this cube:
  $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "group"+N,}).appendTo("#thecubegraph");
  // add groups for the nodes, edges and labels
@@ -404,6 +422,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
    "r": nodeRadius*Math.pow(p,2),
    "cx": screenpositionI[0],
    "cy": screenpositionI[1],
+   "class": "node",
    // give the node an id just in case we need it:
    "id": "node_"+i,
   }).appendTo("#nodegroup"+N);
@@ -428,6 +447,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
    "y": LscreenpositionI[1]+labelOffsetY,
    "transform": "rotate("+textAngle+","+(LscreenpositionI[0]+labelOffsetX)+","+(LscreenpositionI[1]+labelOffsetY)+")",
    "style": "dominant-baseline:middle; text-anchor:left;", // left, middle
+   "class": "label",
    "id": "label_"+i,
   });
 
@@ -443,3 +463,19 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
+function nearestNode(x,y){
+ var searchRadius = 100;
+ var allnodes = document.getElementById("nodegroup0").children; // the main cube's nodes
+ var thenode = null;
+ var minDist = Infinity;
+ for (var i=0;i<allnodes.length;i++){
+  var x1=allnodes[i].getAttribute("cx");
+  var y1=allnodes[i].getAttribute("cy");
+  var dist = Math.pow(Math.pow(x-x1,2.0)+Math.pow(y-y1,2.0),0.5); // unnecessarily proper, but speed should not be a big issue (we could just do Manhattan distance)
+  if (dist<minDist & dist<=searchRadius){
+   minDist = dist;
+   thenode = i;
+  }
+ }
+ return thenode;
+}

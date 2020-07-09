@@ -65,12 +65,18 @@ rect {
  fill: none;
  pointer-events: all;
 }
-.node {
+.xxxnode {
  fill: #ccc;
  stroke: #000;
  stroke-width: 1.5px;
  stroke-width: 1px;
  box-shadow: 5px 5px 3px #fff;
+}
+.label {
+ pointer-events: none;
+}
+.nodehighlight {
+ fill: #c00;
 }
 line {
  stroke-linecap: round;
@@ -285,7 +291,7 @@ input[type=range]{
  </div>
 
  <div class="grapharea" id="graphareaCubeGraph">
-  <svg id="thecubegraph" class="shadowed" height="700"></svg>
+  <svg id="thecubegraph" class="shadowed" height="65vh"></svg>
   <svg id="therotator" class="draggable"></svg>
   <div class="rotatorlabel">rotate</div>
  </div>
