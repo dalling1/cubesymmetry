@@ -157,8 +157,10 @@ function highlightNodes(event){
 
  var thenode = nearestNode(mouseX,mouseY);
  $(".node").attr("fill","#000000"); // turn off highlighting for all nodes
+ $(".node").attr("filter",""); // turn off highlighting for all nodes
  if (thenode != null){ // but add it to the nearest node (in range)
-  $("#node_"+thenode).attr("fill","#ff0000");
+  $("#node_"+thenode).attr("fill","#ffcc00");
+  $("#node_"+thenode).attr("filter","url(#f3)");
  }
 }
 
@@ -237,9 +239,23 @@ function wipeCanvas(){
  // re-add the required defs:
  if (1) document.getElementById("thecubegraph").insertAdjacentHTML("afterbegin",'\
   <defs>\
-    <filter id="f1" x="0" y="0" width="200%" height="200%">\
-      <feOffset result="offOut" in="SourceAlpha" dx="2" dy="2" />\
-      <feGaussianBlur result="blurOut" in="offOut" stdDeviation="1" />\
+    <filter id="f1" x="-150%" y="-150%" width="300%" height="300%">\
+      <feOffset result="offOut" in="SourceAlpha" dx="0" dy="0" />\
+      <feGaussianBlur result="blurOut" in="offOut" stdDeviation="5" />\
+      <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
+    </filter>\
+\
+    <filter id="f2" x="-150%" y="-150%" width="300%" height="300%">\
+      <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
+      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 0 0 1 0"/>\
+      <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
+      <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
+    </filter>\
+\
+    <filter id="f3" x="-150%" y="-150%" width="300%" height="300%">\
+      <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
+      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 1 1 0"/>\
+      <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
   </defs>');
