@@ -1,6 +1,37 @@
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
+class Rotation {
+ constructor(azimuth=0, elevation=0, gamma=0, units="radians"){
+  this.name = "Rotation";
+  this.az = azimuth;
+  this.el = elevation;
+  this.gamma = 0;
+  this.units = "radians";
+ }
+
+ degrees(){
+  if (this.units=="radians"){
+   this.az = Math.PI*this.az/180.0; // convert degrees to radians
+   this.el = Math.PI*this.el/180.0; // convert degrees to radians
+   this.gamma = Math.PI*this.gamma/180.0; // convert degrees to radians
+   this.units = "degrees";
+  }
+ }
+
+ radians(){
+  if (this.units=="degrees"){
+   this.az = this.az*180.0/Math.PI; // convert radians to degrees
+   this.el = this.el*180.0/Math.PI; // convert radians to degrees
+   this.gamma = this.gamma*180.0/Math.PI; // convert radians to degrees
+   this.units = "radians";
+  }
+ }
+
+}
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
  var originX = 0;
  var originY = 0;
@@ -59,6 +90,9 @@ function setup(){
 // document.getElementById("therotator").addEventListener("mousemove", setRotator);
 // document.getElementById("joystick").addEventListener("ondrag", setRotator);
 
+ // add mousemove function to the main graph
+ document.getElementById("thecubegraph").addEventListener("mousemove", highlightNodes);
+
  // set the control labels to the control values:
  setControls();
 
@@ -110,6 +144,19 @@ function makeDraggable(obj){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
+function highlightNodes(event){
+ var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+ var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+ var mx = document.getElementById("thecubegraph").getBoundingClientRect().height;
+ var my = document.getElementById("thecubegraph").getBoundingClientRect().width;
+
+ var mouseX = Math.round(event.clientX-dx);
+ var mouseY = Math.round(event.clientY-dy);
+}
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function setRotator(event){
  // "therotator" is a "touch-pad"-like control which lets the user define two rotation angles
  // -- these will be scaled between some max and min values according to the position on the panel
@@ -128,6 +175,31 @@ function setRotator(event){
  var py = parseFloat(cy/my);
  if (debug) console.log(px+", "+py);
  drawCubeGraph();
+}
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function getAzEl(){
+ // parameters of the rotation control pad
+ var mx = document.getElementById("therotator").getBoundingClientRect().height;
+ var my = document.getElementById("therotator").getBoundingClientRect().width;
+ var cx = $("#joystick").attr("cx");
+ var cy = $("#joystick").attr("cy");
+ var px = parseFloat(cx/mx);
+ var py = parseFloat(cy/my);
+ // azimuth and elevation limits
+ var azRange = [-180, 180];
+ var elRange = [-90, 90];
+ // spherical rotation parameters
+ var az = (azRange[1]-azRange[0])*px + azRange[0];
+ var el = (elRange[1]-elRange[0])*py + elRange[0];
+//console.log(az+", "+el);
+
+ rot = new Rotation();
+ rot.az = az;
+ rot.el = el;
+ return rot;
 }
 
 /* ********************************************************************************************* */
@@ -176,16 +248,19 @@ function rotMatrixMult(M=[[1,0,0],[0,1,0],[0,0,1]],R=[0,0,0]){
  return result;
 }
 
-function rotate(R,rotAngles=[0,0,0]){
- // rotAngles must contain three values, alpha, beta and gamma, for rotation about the x-, y- and z-axes, respectively
- for (var i=0;i<3;i++) rotAngles[i] = Math.PI*rotAngles[i]/180.0; // convert degrees to radians
+function rotate(R,thisRotation){
+ // thisRotation is a Rotation class variable with three attributes, az, el and gamma
+ // corresponding to rotation about the x-, y- and z-axes, respectively
+ // (formerly alpha, beta and gamma, in an array)
+// for (var i=0;i<3;i++) rotAngles[i] = Math.PI*rotAngles[i]/180.0; // convert degrees to radians
 
- var cAlpha = Math.cos(rotAngles[0]);
- var sAlpha = Math.sin(rotAngles[0]);
- var cBeta = Math.cos(rotAngles[1]);
- var sBeta = Math.sin(rotAngles[1]);
- var cGamma = Math.cos(rotAngles[2]);
- var sGamma = Math.sin(rotAngles[2]);
+ thisRotation.degrees(); // make sure we are using degrees
+ var cAlpha = Math.cos(thisRotation.az);
+ var sAlpha = Math.sin(thisRotation.az);
+ var cBeta = Math.cos(thisRotation.el);
+ var sBeta = Math.sin(thisRotation.el);
+ var cGamma = Math.cos(thisRotation.gamma);
+ var sGamma = Math.sin(thisRotation.gamma);
 
  var Mx = [ [1,0,0], [0,cAlpha,sAlpha], [0,-sAlpha,cAlpha]];
  var My = [ [cBeta,0,-sBeta], [0,1,0], [sBeta,0,cBeta]];
@@ -242,6 +317,9 @@ function createCubeGraph(){
 }
 
 
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function drawCubeGraph(){
  // clear the existing SVG element:
  wipeCanvas();
@@ -260,26 +338,15 @@ function drawCubeGraph(){
 }
 
 
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function drawOneCube(position,labels,offsetX=0,offsetY=0){
  /*
   This approach draws the nodes first, and then the edges.
-  We should switch to using SVG groups, so that which element is "on top" in the drawing can be managed more easily.
+  We should switch to using SVG groups, so that which element is "on top" in the
+  drawing can be managed more easily.
  */
-
- // parameters of the rotation control pad
- var mx = document.getElementById("therotator").getBoundingClientRect().height;
- var my = document.getElementById("therotator").getBoundingClientRect().width;
- var cx = $("#joystick").attr("cx");
- var cy = $("#joystick").attr("cy");
- var px = parseFloat(cx/mx);
- var py = parseFloat(cy/my);
- // azimuth and elevation limits
- var azRange = [-180, 180];
- var elRange = [-90, 90];
- // spherical rotation parameters
- var az = (azRange[1]-azRange[0])*px + azRange[0];
- var el = (elRange[1]-elRange[0])*py + elRange[0];
-//console.log(az+", "+el);
 
  // get user control values:
  var nodeRadius = $("#thenodesize").val();
@@ -288,9 +355,11 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
 
  var N = $("#thecubegraph").children().length;
  // add a new SVG group for this cube:
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({
-  "id": "group"+N,
- }).appendTo("#thecubegraph");
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "group"+N,}).appendTo("#thecubegraph");
+ // add groups for the nodes, edges and labels
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "nodegroup"+N,}).appendTo("#group"+N);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "edgegroup"+N,}).appendTo("#group"+N);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "labelgroup"+N,}).appendTo("#group"+N);
 
 
  // add a line for each edge:
@@ -298,8 +367,8 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   // draw any edges to "later" nodes (to avoid duplicate edges)
   for (var j=i;j<position.length;j++){
    if (adjMatrix[i][j]){ // yes, connect nodes i and j
-    var positionIRotated = rotate(position[i],[el,az,0]);
-    var positionJRotated = rotate(position[j],[el,az,0]);
+    var positionIRotated = rotate(position[i],getAzEl());
+    var positionJRotated = rotate(position[j],getAzEl());
     var pI = perspective(positionIRotated[2]); // perspective scaling value
     var pJ = perspective(positionJRotated[2]); // perspective scaling value
 
@@ -318,16 +387,15 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
      "y2": screenpositionJ[1],
      // give the edge an id just in case we need it:
      "id": "edge_"+i+"_"+j,
-    }).appendTo("#group"+N);
+    }).appendTo("#edgegroup"+N);
    }
   }
  }
-//    }).appendTo("#thecubegraph");
 
 
  // add a marker for each node:
  for (var i=0;i<position.length;i++){
-  var positionRotated = rotate(position[i],[el,az,0]);
+  var positionRotated = rotate(position[i],getAzEl());
   var p = perspective(positionRotated[2]); // perspective scaling value
   var screenpositionI = canvasScale3D(positionRotated,offsetX,offsetY);
   $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
@@ -338,7 +406,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
    "cy": screenpositionI[1],
    // give the node an id just in case we need it:
    "id": "node_"+i,
-  }).appendTo("#group"+N);
+  }).appendTo("#nodegroup"+N);
  }
 
 
@@ -349,7 +417,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
  var textAngle = 0;
  var textColour = "#ffff00";
  for (var i=0;i<position.length;i++){
-  var LpositionRotated = rotate(position[i],[el,az,0]);
+  var LpositionRotated = rotate(position[i],getAzEl());
   var p = perspective(LpositionRotated[2]); // perspective scaling value
   var LscreenpositionI = canvasScale3D(LpositionRotated,offsetX,offsetY);
   var newText = document.createElementNS("http://www.w3.org/2000/svg","text");
@@ -366,8 +434,12 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   // the text node has been created, so insert the node's label
   var textNode = document.createTextNode(labels[i]);
   newText.appendChild(textNode);
-  document.getElementById("group"+N).appendChild(newText);
+  document.getElementById("labelgroup"+N).appendChild(newText);
 
  }
 
 }
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
