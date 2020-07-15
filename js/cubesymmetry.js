@@ -29,6 +29,8 @@ class Rotation {
  }
 
 }
+
+
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
@@ -65,6 +67,7 @@ function perspective(z){
  return p;
 }
 
+
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
@@ -84,16 +87,12 @@ function setup(){
   "id": "joystick",
   "class": "draggable",
  }).appendTo("#therotator");
- // drag on therotator (which moves the "joystick")
- makeDraggable($("#therotator"));
- // make therotator listen for clicks:
-// document.getElementById("therotator").addEventListener("click", setRotator);
- // or, make therotator listen for mouse movements:
-// document.getElementById("therotator").addEventListener("mousemove", setRotator);
-// document.getElementById("joystick").addEventListener("ondrag", setRotator);
+
+ // set drag on therotator (which moves the "joystick")
+ makeJoystickDraggable();
 
  // add mousemove function to the main graph
- document.getElementById("thecubegraph").addEventListener("mousemove", highlightNodes);
+ document.getElementById("thecubegraph").addEventListener("mousemove", highlightAllowedNodes);
 
  // set the control labels to the control values:
  setControls();
@@ -102,98 +101,194 @@ function setup(){
  drawCubeGraph();
 }
 
-/* not using this:
-function drag(evt){
- dx = document.getElementById("therotator").getBoundingClientRect().x;
- dy = document.getElementById("therotator").getBoundingClientRect().y;
- document.getElementById("joystick").setAttribute("cx",Math.round(evt.clientX-dx));
- document.getElementById("joystick").setAttribute("cy",Math.round(evt.clientY-dy));
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+doDragJoystick = null; // initialise
+function makeJoystickDraggable(){
+ // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+ var svg = $("#therotator")[0];
+ svg.addEventListener('mousedown', startDrag);
+ svg.addEventListener('mousemove', dragJoystick);
+ svg.addEventListener('mouseup', endDrag);
+ // we are not using 'mouseleave' to end dragging, so that the user can move the mouse outside
+ // therotator temporarily (ie. overshoot) without losing "drag"
+
+ function startDrag(event){
+  if (event.target.classList.contains('draggable')){
+   doDragJoystick = event.target;
+  }
+ }
+
+ function dragJoystick(event){
+  if (doDragJoystick) {
+   event.preventDefault();
+   // "therotator" is a "touch-pad"-like control which lets the user define two rotation angles
+   // -- these will be scaled between some max and min values according to the position on the panel
+   // -- the "joystick" is the dot marking the current value of therotator
+   // the code below was formerly a separate function, setRotator(event):
+   var boxW = document.getElementById("therotator").getBoundingClientRect().width; // get size so that we can work out the percentage
+   var boxH = document.getElementById("therotator").getBoundingClientRect().height;
+
+   // move the joystick marker to the clicked position:
+   document.getElementById("joystick").setAttribute("cx",Math.round(event.layerX));
+   document.getElementById("joystick").setAttribute("cy",Math.round(event.layerY));
+   var cx = $("#joystick").attr("cx");
+   var cy = $("#joystick").attr("cy");
+   var px = parseFloat(cx/boxW);
+   var py = parseFloat(cy/boxH);
+
+   // re-draw the graph, which applies the current rotation
+   drawCubeGraph();
+
+  }
+ }
+
+ function endDrag(event){
+  doDragJoystick = null;
+ }
+
 }
+
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+selectedNode = null; // initialise
+selectedNodePosition = [null,null]; // initialise
+function makeNodesDraggable(){
+ // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+ var svg = $("#graphareaCubeGraph")[0];
+ svg.addEventListener('mousedown', startNodeDrag);
+ svg.addEventListener('mousemove', dragNode);
+ svg.addEventListener('mouseup', endNodeDrag);
+ // not using 'mouseleave' to end dragging, so that the user can move the mouse outside the graph
+ // area temporarily (ie. overshoot) without losing "drag" (otherwise they'd have to release and
+ // re-click the mouse button)
+
+ function startNodeDrag(event){
+  // 1. look for the nearest node (within some range) in the original graph
+  //     -- make sure that we don't switch nodes in mid-drag
+  // 2. perhaps do nothing if it has already been "moved" to the graph copy (its label moved)
+  // 3. set selectedNode equal to that nearest node
+
+  if (selectedNode===null){ // make sure that we don't switch nodes in mid-drag
+   var thenode = nearestNode(Math.round(event.layerX),Math.round(event.layerY));
+   if (thenode != null){
+    // record the original position in case we need to put it back:
+    selectedNode = thenode;
+    selectedNodePosition = [$("#"+thenode).attr("cx"), $("#"+thenode).attr("cy")];
+   }
+  }
+
+ }
+
+ function dragNode(event){
+  // 1. if there is a selectedNode, move it along with the mouse, within the confines of the grapharea
+
+  if (selectedNode) {
+   event.preventDefault();
+   // move the node:
+   document.getElementById(selectedNode).setAttribute("cx",Math.round(event.layerX));
+   document.getElementById(selectedNode).setAttribute("cy",Math.round(event.layerY));
+  }
+ }
+ function endNodeDrag(event){
+  // if the node didn't get dragged to a new LEGAL location on the graph copy, send it back
+  // to where it started (release and animate a drift back to its home)
+  // ...
+  // ...
+  // ...
+
+  selectedNode = null;
+ }
+}
+
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function highlightAllowedNodes(event){
+ if (selectedNode===null){
+  // turn off highlighting for all nodes:
+  $(".node").attr("fill","#000000");
+  $(".node").attr("filter","");
+
+  // add highlighting to the nearest node (in range)
+  var thenode = nearestNode(Math.round(event.layerX),Math.round(event.layerY));
+  if (thenode != null){
+   $("#"+thenode).attr("fill","#ffcc00");
+   $("#"+thenode).attr("filter","url(#f3)");
+
+   // get a list of unlabelled nodes in the second graph:
+   var emptylabels = new Array(labelsCopy.length);
+   emptylabels.fill(false);
+   var Nempty = 0;
+   for (var i=0;i<labelsCopy.length;i++){
+    emptylabels[i] = labelsCopy[i].length==0;
+    if (emptylabels[i]) Nempty++;
+   }
+
+   // are none empty?
+   if (Nempty==0){
+    // finished relabelling! do nothing
+   } else {
+    // are they all empty? then the highlighted node in the original graph can be placed anywhere:
+    if (Nempty == labelsCopy.length){
+     var nodelist = document.getElementById("nodegroup1").children; // the copy cube's nodes
+     for (var i=0;i<nodelist.length;i++){
+      var ni = $(nodelist[i]).attr("id");
+      $("#"+ni).attr("fill","#ffcc00");
+      $("#"+ni).attr("filter","url(#f3)");
+     }
+    } else {
+     // only some are not empty, so find the constraints on the placement of the highlighted node:
+     var nodelist = document.getElementById("nodegroup1").children; // all of the copy cube's nodes
+/*
+ procedure:
+  - for each element of nodelist, find its neighbours
+
+    var nodedists = new Array(nodelist.length);
+    nodedists.fill(Infinity);
+    for (var i=0;i<nodelist.length;i++)
 */
 
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-selectedElement = null;
-// http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
-function makeDraggable(obj){
- var svg = obj[0];
- svg.addEventListener('mousedown', startDrag);
- svg.addEventListener('mousemove', drag);
- svg.addEventListener('mouseup', endDrag);
-// svg.addEventListener('mouseleave', endDrag);
- function startDrag(evt){
-  if (evt.target.classList.contains('draggable')){
-   selectedElement = evt.target;
+     for (var i=999;i<nodelist.length;i++){
+      if (emptylabels[i]){
+       var ni = $(nodelist[i]).attr("id");
+       $("#"+ni).attr("fill","#ffcc00");
+       $("#"+ni).attr("filter","url(#f3)");
+      }
+     }
+    }
+   }
+
+   // highlight this node's copy: (that is, the node in the graph's copy which has the same label
+   var thenodecopy = null;
+   for (var i=0;i<labelsCopy.length;i++){
+    if (labelsCopy[i]==labelsOriginal[thenode]){
+     thenodecopy = i;
+    }
+   }
+   if (thenodecopy != null){
+    $("#node_1_"+thenodecopy).attr("fill","#ccff44");
+    $("#node_1_"+thenodecopy).attr("filter","url(#f2)");
+   }
+
   }
- }
- function drag(evt){
-  if (selectedElement) {
-    evt.preventDefault();
-//    var dragX = evt.clientX;
-//    var dragY = evt.clientY;
-//    selectedElement.setAttributeNS(null, "x", dragX);
-//    selectedElement.setAttributeNS(null, "y", dragY);
-    setRotator(evt);
-  }
- }
- function endDrag(evt){
-  selectedElement = null;
- }
+ } // if selectedNode==null
 }
 
 
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-function highlightNodes(event){
- var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
- var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
- var mx = document.getElementById("thecubegraph").getBoundingClientRect().height;
- var my = document.getElementById("thecubegraph").getBoundingClientRect().width;
-
- var mouseX = Math.round(event.clientX-dx);
- var mouseY = Math.round(event.clientY-dy);
-
- var thenode = nearestNode(mouseX,mouseY);
- $(".node").attr("fill","#000000"); // turn off highlighting for all nodes
- $(".node").attr("filter",""); // turn off highlighting for all nodes
- if (thenode != null){ // but add it to the nearest node (in range)
-  $("#node_"+thenode).attr("fill","#ffcc00");
-  $("#node_"+thenode).attr("filter","url(#f3)");
- }
-}
-
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-/* ********************************************************************************************* */
-function setRotator(event){
- // "therotator" is a "touch-pad"-like control which lets the user define two rotation angles
- // -- these will be scaled between some max and min values according to the position on the panel
- // -- the "joystick" is the dot marking the current value of therotator
- var debug = false;
- var dx = document.getElementById("therotator").getBoundingClientRect().x;
- var dy = document.getElementById("therotator").getBoundingClientRect().y;
- var mx = document.getElementById("therotator").getBoundingClientRect().height;
- var my = document.getElementById("therotator").getBoundingClientRect().width;
- // move the joystick marker to the clicked position:
- document.getElementById("joystick").setAttribute("cx",Math.round(event.clientX-dx));
- document.getElementById("joystick").setAttribute("cy",Math.round(event.clientY-dy));
- var cx = $("#joystick").attr("cx");
- var cy = $("#joystick").attr("cy");
- var px = parseFloat(cx/mx);
- var py = parseFloat(cy/my);
- if (debug) console.log(px+", "+py);
- drawCubeGraph();
-}
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function getAzEl(){
  // parameters of the rotation control pad
- var mx = document.getElementById("therotator").getBoundingClientRect().height;
- var my = document.getElementById("therotator").getBoundingClientRect().width;
+ var mx = document.getElementById("therotator").getBoundingClientRect().width;
+ var my = document.getElementById("therotator").getBoundingClientRect().height;
  var cx = $("#joystick").attr("cx");
  var cy = $("#joystick").attr("cy");
  var px = parseFloat(cx/mx);
@@ -204,7 +299,6 @@ function getAzEl(){
  // spherical rotation parameters
  var az = (azRange[1]-azRange[0])*px + azRange[0];
  var el = (elRange[1]-elRange[0])*py + elRange[0];
-//console.log(az+", "+el);
 
  rot = new Rotation();
  rot.az = az;
@@ -245,16 +339,16 @@ function wipeCanvas(){
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
 \
-    <filter id="f2" x="-150%" y="-150%" width="300%" height="300%">\
+    <filter id="f3" x="-150%" y="-150%" width="300%" height="300%">\
       <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
-      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 0 0 1 0"/>\
+      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 1 1 0"/>\
       <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
 \
-    <filter id="f3" x="-150%" y="-150%" width="300%" height="300%">\
+    <filter id="f2" x="-150%" y="-150%" width="300%" height="300%">\
       <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
-      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 1 1 0"/>\
+      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 0 1 0"/>\
       <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
@@ -289,10 +383,10 @@ function rotate(R,thisRotation){
 // for (var i=0;i<3;i++) rotAngles[i] = Math.PI*rotAngles[i]/180.0; // convert degrees to radians
 
  thisRotation.degrees(); // make sure we are using degrees
- var cAlpha = Math.cos(thisRotation.az);
- var sAlpha = Math.sin(thisRotation.az);
- var cBeta = Math.cos(thisRotation.el);
- var sBeta = Math.sin(thisRotation.el);
+ var cAlpha = Math.cos(thisRotation.el);
+ var sAlpha = Math.sin(thisRotation.el);
+ var cBeta = Math.cos(thisRotation.az);
+ var sBeta = Math.sin(thisRotation.az);
  var cGamma = Math.cos(thisRotation.gamma);
  var sGamma = Math.sin(thisRotation.gamma);
 
@@ -324,8 +418,11 @@ function createCubeGraph(){
  positionOriginal = new Array(Nnodes);
  positionOriginal.fill([0,0,0]); // initialise all nodes at (0,0,0)
  labelsOriginal = new Array(Nnodes);
+ labelsCopy = new Array(Nnodes);
  for (var i=0;i<Nnodes;i++){
   labelsOriginal[i] = String(i);
+  labelsCopy[i] = '';
+//  if (i==6) labelsCopy[i] = '0'; // testing [== map node 0 to node 0]
  }
 
  // set up the neighbour relationships:
@@ -365,9 +462,10 @@ function drawCubeGraph(){
 
  // draw the first cube:
  drawOneCube(positionOriginal,labelsOriginal,cubeGap/2,0);
+ makeNodesDraggable();
 
  // draw the second cube:
- drawOneCube(positionOriginal,labelsOriginal,-cubeGap/2,0);
+ drawOneCube(positionOriginal,labelsCopy,-cubeGap/2,0);
 
 }
 
@@ -432,15 +530,16 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   var positionRotated = rotate(position[i],getAzEl());
   var p = perspective(positionRotated[2]); // perspective scaling value
   var screenpositionI = canvasScale3D(positionRotated,offsetX,offsetY);
+  var thisID = "node_"+N+"_"+i;
   $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
    "fill": "#000000",
    "stroke": "none",
    "r": nodeRadius*Math.pow(p,2),
    "cx": screenpositionI[0],
    "cy": screenpositionI[1],
-   "class": "node",
+   "class": "node draggable",
    // give the node an id just in case we need it:
-   "id": "node_"+i,
+   "id": thisID,
   }).appendTo("#nodegroup"+N);
  }
 
@@ -468,7 +567,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   });
 
   // the text node has been created, so insert the node's label
-  var textNode = document.createTextNode(labels[i]);
+  var textNode = document.createTextNode((labels[i].length?labels[i]:''));
   newText.appendChild(textNode);
   document.getElementById("labelgroup"+N).appendChild(newText);
 
@@ -482,16 +581,16 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
 function nearestNode(x,y){
  var searchRadius = 100;
  var allnodes = document.getElementById("nodegroup0").children; // the main cube's nodes
- var thenode = null;
+ var thenodeID = null;
  var minDist = Infinity;
  for (var i=0;i<allnodes.length;i++){
   var x1=allnodes[i].getAttribute("cx");
   var y1=allnodes[i].getAttribute("cy");
   var dist = Math.pow(Math.pow(x-x1,2.0)+Math.pow(y-y1,2.0),0.5); // unnecessarily proper, but speed should not be a big issue (we could just do Manhattan distance)
-  if (dist<minDist & dist<=searchRadius){
+  if (dist<minDist & dist<=searchRadius){ // ties are resolved in favour of the earlier node in the list
    minDist = dist;
-   thenode = i;
+   var thenodeID = allnodes[i].id;
   }
  }
- return thenode;
+ return thenodeID;
 }
