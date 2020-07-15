@@ -74,24 +74,26 @@ function perspective(z){
 function setup(){
  // clean up first (and set up the SVG defs):
  wipeCanvas();
+
  // set the width of things:
  document.getElementById("graphareaCubeGraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
  document.getElementById("thecubegraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
+
  // add a control point to "therotator":
  $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
   "fill": "#000000",
   "stroke": "none",
   "r": 4,
-  "cx": parseFloat($("#therotator").width()/2), // centred
-  "cy": parseFloat($("#therotator").width()/2), // centred
+  "cx": parseFloat($("#therotator").width()/2), // starts centred
+  "cy": parseFloat($("#therotator").width()/2), // starts centred
   "id": "joystick",
   "class": "draggable",
  }).appendTo("#therotator");
 
- // set drag on therotator (which moves the "joystick")
+ // set drag on therotator (which moves the "joystick"):
  makeJoystickDraggable();
 
- // add mousemove function to the main graph
+ // add mousemove function to the main graph:
  document.getElementById("thecubegraph").addEventListener("mousemove", highlightAllowedNodes);
 
  // set the control labels to the control values:
@@ -251,7 +253,9 @@ function highlightAllowedNodes(event){
 
     var nodedists = new Array(nodelist.length);
     nodedists.fill(Infinity);
-    for (var i=0;i<nodelist.length;i++)
+    for (var i=0;i<nodelist.length;i++){
+     // ...
+    }
 */
 
      for (var i=999;i<nodelist.length;i++){
