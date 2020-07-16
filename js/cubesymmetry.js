@@ -111,13 +111,15 @@ doDragJoystick = null; // initialise
 function makeJoystickDraggable(){
  // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
  var svg = $("#therotator")[0];
- svg.addEventListener('mousedown', startDrag);
+ svg.addEventListener('mousedown', startJoystickDrag);
  svg.addEventListener('mousemove', dragJoystick);
  svg.addEventListener('mouseup', endDrag);
  // we are not using 'mouseleave' to end dragging, so that the user can move the mouse outside
  // therotator temporarily (ie. overshoot) without losing "drag"
 
- function startDrag(event){
+ function startJoystickDrag(event){
+  event.preventDefault();
+  event.stopPropagation();
   if (event.target.classList.contains('draggable')){
    doDragJoystick = event.target;
   }
@@ -126,6 +128,7 @@ function makeJoystickDraggable(){
  function dragJoystick(event){
   if (doDragJoystick) {
    event.preventDefault();
+   event.stopPropagation();
    // "therotator" is a "touch-pad"-like control which lets the user define two rotation angles
    // -- these will be scaled between some max and min values according to the position on the panel
    // -- the "joystick" is the dot marking the current value of therotator
@@ -134,8 +137,13 @@ function makeJoystickDraggable(){
    var boxH = document.getElementById("therotator").getBoundingClientRect().height;
 
    // move the joystick marker to the clicked position:
-   document.getElementById("joystick").setAttribute("cx",Math.round(event.layerX));
-   document.getElementById("joystick").setAttribute("cy",Math.round(event.layerY));
+   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+   var mouseX = Math.round(event.clientX-dx);
+   var mouseY = Math.round(event.clientY-dy);
+
+   document.getElementById("joystick").setAttribute("cx",Math.round(mouseX));
+   document.getElementById("joystick").setAttribute("cy",Math.round(mouseY));
    var cx = $("#joystick").attr("cx");
    var cy = $("#joystick").attr("cy");
    var px = parseFloat(cx/boxW);
@@ -176,7 +184,12 @@ function makeNodesDraggable(){
   // 3. set selectedNode equal to that nearest node
 
   if (selectedNode===null){ // make sure that we don't switch nodes in mid-drag
-   var thenode = nearestNode(Math.round(event.layerX),Math.round(event.layerY));
+   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+   var mouseX = Math.round(event.clientX-dx);
+   var mouseY = Math.round(event.clientY-dy);
+
+   var thenode = nearestNode(Math.round(mouseX),Math.round(mouseY));
    if (thenode != null){
     // record the original position in case we need to put it back:
     selectedNode = thenode;
@@ -187,13 +200,20 @@ function makeNodesDraggable(){
  }
 
  function dragNode(event){
-  // 1. if there is a selectedNode, move it along with the mouse, within the confines of the grapharea
-
+  // make sure that we are close to a node, and then move it around
   if (selectedNode) {
    event.preventDefault();
+   event.stopPropagation();
    // move the node:
-   document.getElementById(selectedNode).setAttribute("cx",Math.round(event.layerX));
-   document.getElementById(selectedNode).setAttribute("cy",Math.round(event.layerY));
+   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+//   var mx = document.getElementById("thecubegraph").getBoundingClientRect().height;
+//   var my = document.getElementById("thecubegraph").getBoundingClientRect().width;
+
+   var mouseX = Math.round(event.clientX-dx);
+   var mouseY = Math.round(event.clientY-dy);
+   document.getElementById(selectedNode).setAttribute("cx",Math.round(mouseX));
+   document.getElementById(selectedNode).setAttribute("cy",Math.round(mouseY));
   }
  }
  function endNodeDrag(event){
@@ -218,7 +238,11 @@ function highlightAllowedNodes(event){
   $(".node").attr("filter","");
 
   // add highlighting to the nearest node (in range)
-  var thenode = nearestNode(Math.round(event.layerX),Math.round(event.layerY));
+  var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+  var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+  var mouseX = Math.round(event.clientX-dx);
+  var mouseY = Math.round(event.clientY-dy);
+  var thenode = nearestNode(Math.round(mouseX),Math.round(mouseY));
   if (thenode != null){
    $("#"+thenode).attr("fill","#ffcc00");
    $("#"+thenode).attr("filter","url(#f3)");
@@ -582,9 +606,10 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
-function nearestNode(x,y){
+function nearestNode(x,y,groupN=0){
+ // groupN = 0 for original cube, 1 for copy cube
  var searchRadius = 100;
- var allnodes = document.getElementById("nodegroup0").children; // the main cube's nodes
+ var allnodes = document.getElementById("nodegroup"+groupN).children; // the main cube's nodes
  var thenodeID = null;
  var minDist = Infinity;
  for (var i=0;i<allnodes.length;i++){
