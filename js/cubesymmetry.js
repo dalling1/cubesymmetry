@@ -142,8 +142,8 @@ function makeJoystickDraggable(){
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
 
-   document.getElementById("joystick").setAttribute("cx",Math.round(mouseX));
-   document.getElementById("joystick").setAttribute("cy",Math.round(mouseY));
+   document.getElementById("joystick").setAttribute("cx",mouseX);
+   document.getElementById("joystick").setAttribute("cy",mouseY);
    var cx = $("#joystick").attr("cx");
    var cy = $("#joystick").attr("cy");
    var px = parseFloat(cx/boxW);
@@ -189,7 +189,7 @@ function makeNodesDraggable(){
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
 
-   var thenode = nearestNode(Math.round(mouseX),Math.round(mouseY));
+   var thenode = nearestNode(mouseX,mouseY);
    if (thenode != null){
     // record the original position in case we need to put it back:
     selectedNode = thenode;
@@ -212,8 +212,8 @@ function makeNodesDraggable(){
 
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
-   document.getElementById(selectedNode).setAttribute("cx",Math.round(mouseX));
-   document.getElementById(selectedNode).setAttribute("cy",Math.round(mouseY));
+   document.getElementById(selectedNode).setAttribute("cx",mouseX);
+   document.getElementById(selectedNode).setAttribute("cy",mouseY);
   }
  }
  function endNodeDrag(event){
@@ -222,6 +222,19 @@ function makeNodesDraggable(){
   // ...
   // ...
   // ...
+  var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
+  var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
+  var mouseX = Math.round(event.clientX-dx);
+  var mouseY = Math.round(event.clientY-dy);
+  var destination = nearestNode(mouseX,mouseY,1); // look for nodes in the cube copy
+  if (destination){
+   // not null, so we are near a target node;
+   // test if it is a legal destination for the dragged node:
+  } else {
+   // no destination, so send this node back to where it came from:
+   document.getElementById(selectedNode).setAttribute("cx",selectedNodePosition[0]);
+   document.getElementById(selectedNode).setAttribute("cy",selectedNodePosition[1]);
+  }
 
   selectedNode = null;
  }
@@ -242,7 +255,7 @@ function highlightAllowedNodes(event){
   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
   var mouseX = Math.round(event.clientX-dx);
   var mouseY = Math.round(event.clientY-dy);
-  var thenode = nearestNode(Math.round(mouseX),Math.round(mouseY));
+  var thenode = nearestNode(mouseX,mouseY);
   if (thenode != null){
    $("#"+thenode).attr("fill","#ffcc00");
    $("#"+thenode).attr("filter","url(#f3)");
