@@ -254,10 +254,10 @@ function makeNodesDraggable(){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function restoreNodePosition(selectedNode=null,selectedNodePosition){
- // the animation of nodes moving back to their "home" position should be included here
+ // possible problem here if the user drags and releases a second node before the first one has finished animating...
+ var speed = 10; // milliseconds for the animation to run; smaller is faster
  if (selectedNode){
-  document.getElementById(selectedNode).setAttribute("cx",selectedNodePosition[0]);
-  document.getElementById(selectedNode).setAttribute("cy",selectedNodePosition[1]);
+  mytimer = setInterval(animatePosition,speed,selectedNode,selectedNodePosition);
  }
 }
 
@@ -265,9 +265,22 @@ function restoreNodePosition(selectedNode=null,selectedNodePosition){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
-function animatePosition(from,to,percent){
- for (var d=0;d<2;d++){
-  animposition[d] = from[d]+(to[d]-from[d])*percent;
+function animatePosition(nodeID,to,percent=20){
+ var from = [parseFloat($("#"+nodeID).attr("cx")), parseFloat($("#"+nodeID).attr("cy"))];
+ var step = [(to[0]-from[0])*(percent/100), (to[1]-from[1])*(percent/100)];
+ var debug = false;
+
+ if (Math.abs(step[0])<1 & Math.abs(step[1])<1){
+//  console.log("from = "+from[0]+", "+from[1]);
+//  console.log("step = "+step[0]+", "+step[1]);
+//  console.log("to = "+to[0]+", "+to[1]);
+  clearInterval(mytimer);
+  document.getElementById(nodeID).setAttribute("cx",to[0]);
+  document.getElementById(nodeID).setAttribute("cy",to[1]);
+  if (debug) console.log("STOPPED");
+ } else {
+  document.getElementById(nodeID).setAttribute("cx",from[0] + step[0]);
+  document.getElementById(nodeID).setAttribute("cy",from[1] + step[1]);
  }
 }
 
