@@ -167,6 +167,7 @@ function makeJoystickDraggable(){
 /* ********************************************************************************************* */
 selectedNode = null; // initialise
 selectedNodePosition = [null,null]; // initialise
+dragOffset = [0,0]; // initialise
 function makeNodesDraggable(){
  // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
  var svg = $("#graphareaCubeGraph")[0];
@@ -194,6 +195,9 @@ function makeNodesDraggable(){
     // record the original position in case we need to put it back:
     selectedNode = thenode;
     selectedNodePosition = [$("#"+thenode).attr("cx"), $("#"+thenode).attr("cy")];
+    // check the offset of the mouse position from the svg element
+    dragOffset[0] = Math.round(event.clientX - document.getElementById(selectedNode).getBoundingClientRect().x);
+    dragOffset[1] = Math.round(event.clientY - document.getElementById(selectedNode).getBoundingClientRect().y);
    }
   }
 
@@ -212,8 +216,8 @@ function makeNodesDraggable(){
 
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
-   document.getElementById(selectedNode).setAttribute("cx",mouseX);
-   document.getElementById(selectedNode).setAttribute("cy",mouseY);
+   document.getElementById(selectedNode).setAttribute("cx",mouseX-dragOffset[0]);
+   document.getElementById(selectedNode).setAttribute("cy",mouseY-dragOffset[1]);
   }
  }
  function endNodeDrag(event){
@@ -230,13 +234,18 @@ function makeNodesDraggable(){
   if (destination){
    // not null, so we are near a target node;
    // test if it is a legal destination for the dragged node:
+   console.log("Dragged a node close to a destination... check if it is legal")
+
+
+   // FOR NOW, SEND IT HOME
+   restoreNodePosition(selectedNode,selectedNodePosition);
   } else {
    // no destination, so send this node back to where it came from:
-   document.getElementById(selectedNode).setAttribute("cx",selectedNodePosition[0]);
-   document.getElementById(selectedNode).setAttribute("cy",selectedNodePosition[1]);
+   restoreNodePosition(selectedNode,selectedNodePosition);
   }
 
   selectedNode = null;
+  dragOffset = [0,0]; // initialise
  }
 }
 
@@ -244,11 +253,34 @@ function makeNodesDraggable(){
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
+function restoreNodePosition(selectedNode=null,selectedNodePosition){
+ // the animation of nodes moving back to their "home" position should be included here
+ if (selectedNode){
+  document.getElementById(selectedNode).setAttribute("cx",selectedNodePosition[0]);
+  document.getElementById(selectedNode).setAttribute("cy",selectedNodePosition[1]);
+ }
+}
+
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function animatePosition(from,to,percent){
+ for (var d=0;d<2;d++){
+  animposition[d] = from[d]+(to[d]-from[d])*percent;
+ }
+}
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function highlightAllowedNodes(event){
  if (selectedNode===null){
   // turn off highlighting for all nodes:
-  $(".node").attr("fill","#000000");
-  $(".node").attr("filter","");
+  allnodes = document.getElementsByClassName("node")
+  for (var i=0;i<allnodes.length;i++){
+   allnodes[i].classList.remove("nodehighlight");
+  }
 
   // add highlighting to the nearest node (in range)
   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
@@ -257,8 +289,7 @@ function highlightAllowedNodes(event){
   var mouseY = Math.round(event.clientY-dy);
   var thenode = nearestNode(mouseX,mouseY);
   if (thenode != null){
-   $("#"+thenode).attr("fill","#ffcc00");
-   $("#"+thenode).attr("filter","url(#f3)");
+   document.getElementById(thenode).classList.add("nodehighlight");
 
    // get a list of unlabelled nodes in the second graph:
    var emptylabels = new Array(labelsCopy.length);
@@ -277,9 +308,8 @@ function highlightAllowedNodes(event){
     if (Nempty == labelsCopy.length){
      var nodelist = document.getElementById("nodegroup1").children; // the copy cube's nodes
      for (var i=0;i<nodelist.length;i++){
-      var ni = $(nodelist[i]).attr("id");
-      $("#"+ni).attr("fill","#ffcc00");
-      $("#"+ni).attr("filter","url(#f3)");
+      var nid = $(nodelist[i]).attr("id");
+      document.getElementById(nid).classList.add("nodehighlight");
      }
     } else {
      // only some are not empty, so find the constraints on the placement of the highlighted node:
@@ -297,11 +327,15 @@ function highlightAllowedNodes(event){
 
      for (var i=999;i<nodelist.length;i++){
       if (emptylabels[i]){
-       var ni = $(nodelist[i]).attr("id");
-       $("#"+ni).attr("fill","#ffcc00");
-       $("#"+ni).attr("filter","url(#f3)");
+       var nid = $(nodelist[i]).attr("id");
+//       $("#"+nid).attr("fill","#ffcc00");
+//       $("#"+nid).attr("filter","url(#f3)");
+//       document.getElementById(nid).classList.add("nodehighlight");
       }
      }
+
+
+
     }
    }
 
@@ -313,6 +347,7 @@ function highlightAllowedNodes(event){
     }
    }
    if (thenodecopy != null){
+    // replace these two lines with classList.add(...):
     $("#node_1_"+thenodecopy).attr("fill","#ccff44");
     $("#node_1_"+thenodecopy).attr("filter","url(#f2)");
    }
