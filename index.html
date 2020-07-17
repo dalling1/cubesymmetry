@@ -2,8 +2,6 @@
 <head>
 <meta charset="utf-8">
 <title>Cube Symmetry</title>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 <link href="https://fonts.googleapis.com/css?family=Fredoka+One|Open+Sans+Condensed:300&display=swap" rel="stylesheet">
 
 <link href="slideCheckbox.css" rel="stylesheet"/>
@@ -75,9 +73,13 @@ rect {
 .label {
  pointer-events: none;
 }
+.draggable {
+ /* transition: all ease 0.5s; */
+}
 .nodehighlight {
  fill: #ffcc00;
  filter: url(#f3);
+ /* transition: all ease 0.5s; */
 }
 line {
  stroke-linecap: round;
@@ -303,6 +305,8 @@ input[type=range]{
  <script src="js/saveSvgAsPng.js"></script>
  <script src="js/svg2pdf.min.js"></script>
  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+ <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
  <script src="js/cubesymmetry.js"></script>
  <script>
  </script>

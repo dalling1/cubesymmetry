@@ -42,7 +42,6 @@ function canvasScale3D(pos=[0,0,0],offsetX=0,offsetY=0){
  var centreX = Math.round(canvaswidth/2) + originX;
  var centreY = Math.round(canvasheight/2) + originY;
 
-// var useScale = 250; // pick something reasonable (useScale = one unit of the chosen coordinate space for the cube nodes)
  var useScale = parseFloat($("#thescale").val());
  if (pos.length==3){
   // single coordinate given as input:
@@ -98,6 +97,9 @@ function setup(){
 
  // set the control labels to the control values:
  setControls();
+
+ // create the graph:
+ createCubeGraph();
 
  // start by drawing the cube:
  drawCubeGraph();
@@ -168,7 +170,7 @@ function makeJoystickDraggable(){
 selectedNode = null; // initialise
 selectedNodePosition = [null,null]; // initialise
 dragOffset = [0,0]; // initialise
-function makeNodesDraggable(){
+function makeNodesDraggable(thisgroup){
  // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
  var svg = $("#graphareaCubeGraph")[0];
  svg.addEventListener('mousedown', startNodeDrag);
@@ -190,7 +192,7 @@ function makeNodesDraggable(){
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
 
-   var thenode = nearestNode(mouseX,mouseY);
+   var thenode = nearestNode(mouseX,mouseY,thisgroup);
    if (thenode != null){
     // record the original position in case we need to put it back:
     selectedNode = thenode;
@@ -200,7 +202,6 @@ function makeNodesDraggable(){
     dragOffset[1] = Math.round(event.clientY - document.getElementById(selectedNode).getBoundingClientRect().y);
    }
   }
-
  }
 
  function dragNode(event){
@@ -213,39 +214,51 @@ function makeNodesDraggable(){
    var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
 //   var mx = document.getElementById("thecubegraph").getBoundingClientRect().height;
 //   var my = document.getElementById("thecubegraph").getBoundingClientRect().width;
-
    var mouseX = Math.round(event.clientX-dx);
    var mouseY = Math.round(event.clientY-dy);
    document.getElementById(selectedNode).setAttribute("cx",mouseX-dragOffset[0]);
    document.getElementById(selectedNode).setAttribute("cy",mouseY-dragOffset[1]);
   }
  }
+
  function endNodeDrag(event){
-  // if the node didn't get dragged to a new LEGAL location on the graph copy, send it back
-  // to where it started (release and animate a drift back to its home)
-  // ...
-  // ...
-  // ...
-  var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
-  var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
-  var mouseX = Math.round(event.clientX-dx);
-  var mouseY = Math.round(event.clientY-dy);
-  var destination = nearestNode(mouseX,mouseY,1); // look for nodes in the cube copy
+  event.preventDefault();
+
+  // test for a legal node near the dragged (now dropped) node's position (not the mouse position):
+  var droppedNodePosition = [$("#"+selectedNode).attr("cx"), $("#"+selectedNode).attr("cy")];
+  var destination = nearestNode(droppedNodePosition[0],droppedNodePosition[1],copygroup); // look for nodes in the cube copy
   if (destination){
-   // not null, so we are near a target node;
-   // test if it is a legal destination for the dragged node:
-   console.log("Dragged a node close to a destination... check if it is legal")
+   // test if this is a legal destination for the dragged node:
+   var from = selectedNode.split("_")[2];
+   var to = destination.split("_")[2];
 
+   var sourcelabel = labelsOriginal[from];
+   var destlabel = labelsCopy[to];
 
-   // FOR NOW, SEND IT HOME
-   restoreNodePosition(selectedNode,selectedNodePosition);
+   var islegal = destlabel.length==0; // for now this is the only test we will make [needs more logic added]
+
+/*
+ We also need to test:
+  - dragged node's label is not already in the copy (should make it non-draggable after it has been copied once...)
+  - test neighbour relationships
+*/
+
+   if (islegal){
+    // add the dragged node's label to the destination node (in the copy graph)
+    labelsCopy[to] = labelsOriginal[from];
+    drawCubeGraph();
+    restoreNodePosition(selectedNode,selectedNodePosition);
+   } else {
+    // otherwise, send the node back home
+    restoreNodePosition(selectedNode,selectedNodePosition);
+   }
   } else {
    // no destination, so send this node back to where it came from:
    restoreNodePosition(selectedNode,selectedNodePosition);
   }
 
-  selectedNode = null;
-  dragOffset = [0,0]; // initialise
+  selectedNode = null; // reset
+  dragOffset = [0,0]; // reset
  }
 }
 
@@ -271,9 +284,6 @@ function animatePosition(nodeID,to,percent=20){
  var debug = false;
 
  if (Math.abs(step[0])<1 & Math.abs(step[1])<1){
-//  console.log("from = "+from[0]+", "+from[1]);
-//  console.log("step = "+step[0]+", "+step[1]);
-//  console.log("to = "+to[0]+", "+to[1]);
   clearInterval(mytimer);
   document.getElementById(nodeID).setAttribute("cx",to[0]);
   document.getElementById(nodeID).setAttribute("cy",to[1]);
@@ -300,7 +310,7 @@ function highlightAllowedNodes(event){
   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
   var mouseX = Math.round(event.clientX-dx);
   var mouseY = Math.round(event.clientY-dy);
-  var thenode = nearestNode(mouseX,mouseY);
+  var thenode = nearestNode(mouseX,mouseY,originalgroup);
   if (thenode != null){
    document.getElementById(thenode).classList.add("nodehighlight");
 
@@ -319,14 +329,14 @@ function highlightAllowedNodes(event){
    } else {
     // are they all empty? then the highlighted node in the original graph can be placed anywhere:
     if (Nempty == labelsCopy.length){
-     var nodelist = document.getElementById("nodegroup1").children; // the copy cube's nodes
+     var nodelist = document.getElementById("nodegroup"+copygroup).children; // the copy cube's nodes
      for (var i=0;i<nodelist.length;i++){
       var nid = $(nodelist[i]).attr("id");
       document.getElementById(nid).classList.add("nodehighlight");
      }
     } else {
      // only some are not empty, so find the constraints on the placement of the highlighted node:
-     var nodelist = document.getElementById("nodegroup1").children; // all of the copy cube's nodes
+     var nodelist = document.getElementById("nodegroup"+copygroup).children; // all of the copy cube's nodes
 /*
  procedure:
   - for each element of nodelist, find its neighbours
@@ -336,17 +346,17 @@ function highlightAllowedNodes(event){
     for (var i=0;i<nodelist.length;i++){
      // ...
     }
-*/
 
      for (var i=999;i<nodelist.length;i++){
       if (emptylabels[i]){
        var nid = $(nodelist[i]).attr("id");
 //       $("#"+nid).attr("fill","#ffcc00");
 //       $("#"+nid).attr("filter","url(#f3)");
-//       document.getElementById(nid).classList.add("nodehighlight");
+       document.getElementById(nid).classList.add("nodehighlight");
       }
      }
 
+*/
 
 
     }
@@ -361,12 +371,12 @@ function highlightAllowedNodes(event){
    }
    if (thenodecopy != null){
     // replace these two lines with classList.add(...):
-    $("#node_1_"+thenodecopy).attr("fill","#ccff44");
-    $("#node_1_"+thenodecopy).attr("filter","url(#f2)");
+    $("#node_"+copygroup+"_"+thenodecopy).attr("fill","#ccff44");
+    $("#node_"+copygroup+"_"+thenodecopy).attr("filter","url(#f2)");
    }
 
   }
- } // if selectedNode==null
+ } // end "if selectedNode==null"
 }
 
 
@@ -543,26 +553,25 @@ function createCubeGraph(){
 function drawCubeGraph(){
  // clear the existing SVG element:
  wipeCanvas();
- // create the graph:
- createCubeGraph();
 
  // get some user control values:
  var cubeGap = $("#thecubegap").val();
 
- // draw the first cube:
- drawOneCube(positionOriginal,labelsOriginal,cubeGap/2,0);
- makeNodesDraggable();
+ // draw the "copy" cube: (draw this first so that dragged "original" nodes are in front of it)
+ copygroup = drawOneCube(positionOriginal,labelsCopy,-cubeGap/2,0);
 
- // draw the second cube:
- drawOneCube(positionOriginal,labelsCopy,-cubeGap/2,0);
+ // draw the "original" cube:
+ originalgroup = drawOneCube(positionOriginal,labelsOriginal,cubeGap/2,0);
 
+//console.log("g = "+originalgroup);
+ makeNodesDraggable(originalgroup);
 }
 
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
-function drawOneCube(position,labels,offsetX=0,offsetY=0){
+function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
  /*
   This approach draws the nodes first, and then the edges.
   We should switch to using SVG groups, so that which element is "on top" in the
@@ -574,13 +583,17 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
  var lineWidth = $("#thelinewidth").val();
 //unused var rotangle = parseFloat($("#therotangle").val());
 
- var N = $("#thecubegraph").children().length - 1; // -1 because the <defs> are the first child...
+ if (thisgroup<0){ // group not specified? work out what it should be:
+  thisgroup = $("#thecubegraph").children().length - 1; // -1 because the <defs> are the first child...
+ }
+
+
  // add a new SVG group for this cube:
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "group"+N,}).appendTo("#thecubegraph");
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "group"+thisgroup,}).appendTo("#thecubegraph");
  // add groups for the nodes, edges and labels
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "nodegroup"+N,}).appendTo("#group"+N);
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "edgegroup"+N,}).appendTo("#group"+N);
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "labelgroup"+N,}).appendTo("#group"+N);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "nodegroup"+thisgroup,}).appendTo("#group"+thisgroup);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "edgegroup"+thisgroup,}).appendTo("#group"+thisgroup);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "labelgroup"+thisgroup,}).appendTo("#group"+thisgroup);
 
 
  // add a line for each edge:
@@ -597,8 +610,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
     var screenpositionJ = canvasScale3D(positionJRotated,offsetX,offsetY);
 
     $(document.createElementNS("http://www.w3.org/2000/svg","line")).attr({
-//     "stroke": "#ff0000",
-     "stroke": (N==0?"#ff0000":"#00ff00"),
+     "stroke": (thisgroup==0?"#ff0000":"#00ff00"),
      "stroke-dasharray": "none",
      "stroke-width": lineWidth*Math.pow(Math.max(pI,pJ),2),
      "stroke-linecap": "round",
@@ -608,7 +620,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
      "y2": screenpositionJ[1],
      // give the edge an id just in case we need it:
      "id": "edge_"+i+"_"+j,
-    }).appendTo("#edgegroup"+N);
+    }).appendTo("#edgegroup"+thisgroup);
    }
   }
  }
@@ -619,7 +631,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   var positionRotated = rotate(position[i],getAzEl());
   var p = perspective(positionRotated[2]); // perspective scaling value
   var screenpositionI = canvasScale3D(positionRotated,offsetX,offsetY);
-  var thisID = "node_"+N+"_"+i;
+  var thisID = "node_"+thisgroup+"_"+i;
   $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
    "fill": "#000000",
    "stroke": "none",
@@ -629,7 +641,7 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
    "class": "node draggable",
    // give the node an id just in case we need it:
    "id": thisID,
-  }).appendTo("#nodegroup"+N);
+  }).appendTo("#nodegroup"+thisgroup);
  }
 
 
@@ -658,19 +670,19 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0){
   // the text node has been created, so insert the node's label
   var textNode = document.createTextNode((labels[i].length?labels[i]:''));
   newText.appendChild(textNode);
-  document.getElementById("labelgroup"+N).appendChild(newText);
+  document.getElementById("labelgroup"+thisgroup).appendChild(newText);
 
  }
 
+ return thisgroup;
 }
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
-function nearestNode(x,y,groupN=0){
- // groupN = 0 for original cube, 1 for copy cube
+function nearestNode(x,y,thisgroup=0){
  var searchRadius = 100;
- var allnodes = document.getElementById("nodegroup"+groupN).children; // the main cube's nodes
+ var allnodes = document.getElementById("nodegroup"+thisgroup).children; // the main cube's nodes
  var thenodeID = null;
  var minDist = Infinity;
  for (var i=0;i<allnodes.length;i++){
