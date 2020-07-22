@@ -331,16 +331,22 @@ function highlightAllowedNodes(event){
    if (Nempty==0){
     // finished relabelling! do nothing
    } else {
+    var nodelist = document.getElementById("nodegroup"+copygroup).children; // the copy cube's nodes
     // are they all empty? then the highlighted node in the original graph can be placed anywhere:
     if (Nempty == labelsCopy.length){
-     var nodelist = document.getElementById("nodegroup"+copygroup).children; // the copy cube's nodes
      for (var i=0;i<nodelist.length;i++){
-      var nid = $(nodelist[i]).attr("id");
-      document.getElementById(nid).classList.add("nodehighlight");
+      nodelist[i].classList.add("nodehighlight");
      }
     } else {
      // only some are not empty, so find the constraints on the placement of the highlighted node:
-     var nodelist = document.getElementById("nodegroup"+copygroup).children; // all of the copy cube's nodes
+
+     // for now, allow labels to be placed anywhere with an empty label:
+     for (var i=0;i<nodelist.length;i++){
+      if (labelsCopy[i].length==0){
+       nodelist[i].classList.add("nodehighlight");
+      }
+     }
+
 /*
  procedure:
   - for each element of nodelist, find its neighbours
