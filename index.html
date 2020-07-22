@@ -280,7 +280,10 @@ input[type=range]{
   </div>
 
   <!-- button to make the graph -->
+<!--
   <button class="onecontrol" style="font-size:2em;" onclick="drawCubeGraph();">GO</button>
+-->
+  <!-- button to reset the graph -->
  </div>
 
  <!-- some buttons for use once the free product graph has been created -->
@@ -298,6 +301,7 @@ input[type=range]{
   <svg id="therotator" class="draggable"></svg>
   <div class="rotatorlabel">drag to rotate</div>
  </div>
+ <button class="onecontrol" style="font-size:2em;" onclick="setup();">RESET</button>
 
  <script src="js/FileSaver.min.js"></script>
  <script src="js/jspdf.min.js"></script>

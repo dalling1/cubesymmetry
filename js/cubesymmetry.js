@@ -79,18 +79,22 @@ function setup(){
  document.getElementById("thecubegraph").setAttribute("style","width:"+document.getElementById("cubeGraphControls").clientWidth+"px;");
 
  // add a control point to "therotator":
- $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
-  "fill": "#000000",
-  "stroke": "none",
-  "r": 4,
-  "cx": parseFloat($("#therotator").width()/2), // starts centred
-  "cy": parseFloat($("#therotator").width()/2), // starts centred
-  "id": "joystick",
-  "class": "draggable",
- }).appendTo("#therotator");
+ if (document.getElementById("joystick")){
+  // the joystick exists, so do nothing
+ } else {
+  $(document.createElementNS("http://www.w3.org/2000/svg","circle")).attr({
+   "fill": "#000000",
+   "stroke": "none",
+   "r": 4,
+   "cx": parseFloat($("#therotator").width()/2), // starts centred
+   "cy": parseFloat($("#therotator").width()/2), // starts centred
+   "id": "joystick",
+   "class": "draggable",
+  }).appendTo("#therotator");
 
- // set drag on therotator (which moves the "joystick"):
- makeJoystickDraggable();
+  // set drag on therotator (which moves the "joystick"):
+  makeJoystickDraggable();
+ }
 
  // add mousemove function to the main graph:
  document.getElementById("thecubegraph").addEventListener("mousemove", highlightAllowedNodes);
@@ -573,9 +577,9 @@ function drawCubeGraph(){
 /* ********************************************************************************************* */
 function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
  /*
-  This approach draws the nodes first, and then the edges.
-  We should switch to using SVG groups, so that which element is "on top" in the
-  drawing can be managed more easily.
+  Drawing order: the edges group is created first, so the nodes group is drawn on top of it
+  in the canvas.  This causes some "back" nodes to overlie "forward" edges in the drawing.
+  It is not particularly noticeable, though, since the back nodes are quite small.
  */
 
  // get user control values:
@@ -587,14 +591,12 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
   thisgroup = $("#thecubegraph").children().length - 1; // -1 because the <defs> are the first child...
  }
 
-
- // add a new SVG group for this cube:
+ // add a new SVG group for this particular cube:
  $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "group"+thisgroup,}).appendTo("#thecubegraph");
- // add groups for the nodes, edges and labels
- $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "nodegroup"+thisgroup,}).appendTo("#group"+thisgroup);
+ // to that group, append groups for the nodes, edges and labels:
  $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "edgegroup"+thisgroup,}).appendTo("#group"+thisgroup);
+ $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "nodegroup"+thisgroup,}).appendTo("#group"+thisgroup);
  $(document.createElementNS("http://www.w3.org/2000/svg","g")).attr({"id": "labelgroup"+thisgroup,}).appendTo("#group"+thisgroup);
-
 
  // add a line for each edge:
  for (var i=0;i<position.length;i++){
@@ -625,7 +627,6 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
   }
  }
 
-
  // add a marker for each node:
  for (var i=0;i<position.length;i++){
   var positionRotated = rotate(position[i],getAzEl());
@@ -643,7 +644,6 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
    "id": thisID,
   }).appendTo("#nodegroup"+thisgroup);
  }
-
 
  // add a label for each node:
  var labelOffsetX = 10;
@@ -671,7 +671,6 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
   var textNode = document.createTextNode((labels[i].length?labels[i]:''));
   newText.appendChild(textNode);
   document.getElementById("labelgroup"+thisgroup).appendChild(newText);
-
  }
 
  return thisgroup;
