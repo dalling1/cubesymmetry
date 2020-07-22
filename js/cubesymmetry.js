@@ -341,32 +341,10 @@ function highlightAllowedNodes(event){
      // only some are not empty, so find the constraints on the placement of the highlighted node:
 
      // for now, allow labels to be placed anywhere with an empty label:
-     for (var i=0;i<nodelist.length;i++){
-      if (labelsCopy[i].length==0){
-       nodelist[i].classList.add("nodehighlight");
-      }
+     var legaldestinations = findDestinations(thenode);
+     for (var i=0;i<legaldestinations.length;i++){
+      $("#"+legaldestinations[i])[0].classList.add("nodehighlight")
      }
-
-/*
- procedure:
-  - for each element of nodelist, find its neighbours
-
-    var nodedists = new Array(nodelist.length);
-    nodedists.fill(Infinity);
-    for (var i=0;i<nodelist.length;i++){
-     // ...
-    }
-
-     for (var i=999;i<nodelist.length;i++){
-      if (emptylabels[i]){
-       var nid = $(nodelist[i]).attr("id");
-//       $("#"+nid).attr("fill","#ffcc00");
-//       $("#"+nid).attr("filter","url(#f3)");
-       document.getElementById(nid).classList.add("nodehighlight");
-      }
-     }
-
-*/
 
 
     }
@@ -390,6 +368,66 @@ function highlightAllowedNodes(event){
 }
 
 
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+function findNeighbours(nodeID,usegroup=-1){
+ if (usegroup==-1){
+  usegroup = nodeID.split("_")[1]; // search the node's own group by default
+ }
+ var thisnode = nodeID.split("_")[2];
+// var neighbours = adjMatrix[from].flatMap((bool, index) => bool ? index : []); // fancy way!
+
+ var neighbours = new Array;
+ for (var i=0;i<adjMatrix[thisnode].length;i++){
+  if (adjMatrix[thisnode][i]){
+   neighbours.push("node_"+usegroup+"_"+i);
+  }
+ }
+ return neighbours; // id of each neighbour in the graph copy
+}
+
+function findDestinations(nodeID){
+ /*
+  1. get node's neighbours (N1) in originalgroup
+  2. find those nodes in copygroup (N2)
+  3. return all of the neighbours of N2
+ */
+ var debug = false;
+ var neighbours = findNeighbours(nodeID,originalgroup);
+ var destinations = new Array;
+ for (var i=0;i<neighbours.length;i++){ // loop over these neighbours and (if present in the copy) get *their* EMPTY neighbours
+  var thisnode = neighbours[i].split("_")[2];
+  if (debug) console.log("A neighbour of "+nodeID+" is "+thisnode);
+  for (var j=0;j<labelsCopy.length;j++){
+   if (labelsCopy[j].length & labelsCopy[j]==labelsOriginal[thisnode]){
+
+    // 1. we have found a neighbour of the dragged/hovered node in the copy
+    //    - this copy node has the same label as a neighbour of the dragged/hovered node
+    var copynode = "node_"+copygroup+"_"+j;
+    if (debug) console.log("   which has ID "+copynode);
+
+    // 2. now find that copy node's neighbours: 
+    copyneighbours = findNeighbours(copynode,copygroup);
+    if (debug) console.log("        which itself has neighbours "+copyneighbours);
+
+    // 3. check those neighbours for empty labels:
+    for (var k=0;k<copyneighbours.length;k++){
+     var thisdest = copyneighbours[k].split("_")[2];
+     if (labelsCopy[thisdest].length==0){
+      // success, the dragged/hovered node can go here
+      destinations.push(copyneighbours[k]);
+     }
+    }
+
+
+   }
+  }
+  if (debug) console.log("-----");
+
+ }
+ return destinations;
+}
 
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
