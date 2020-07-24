@@ -322,6 +322,11 @@ function highlightAllowedNodes(event){
    allnodes[i].classList.remove("nodehighlight");
    allnodes[i].classList.remove("nodehighlightOriginal");
   }
+  alllabels = document.getElementsByClassName("label")
+  for (var i=0;i<alllabels.length;i++){
+//   alllabels[i].classList.remove("labelhighlight");
+   alllabels[i].classList.remove("labelhighlightOriginal");
+  }
 
   // add highlighting to the node closest to the mouse (in range)
   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
@@ -331,6 +336,8 @@ function highlightAllowedNodes(event){
   var thenode = nearestNode(mouseX,mouseY,originalgroup);
   if (thenode != null){
    document.getElementById(thenode).classList.add("nodehighlightOriginal");
+   var thelabel = thenode.replace("node","label");
+   document.getElementById(thelabel).classList.add("labelhighlightOriginal");
 
    // get a list of unlabelled nodes in the second graph:
    var emptylabels = new Array(labelsCopy.length);
@@ -743,23 +750,25 @@ function drawOneCube(position,labels,offsetX=0,offsetY=0,thisgroup=-1){
  // add a label for each node:
  var labelOffsetX = 10;
  var labelOffsetY = 10;
- var fontSize = 20;
+ var fontSize = 30;
  var textAngle = 0;
- var textColour = "#ffff00";
+ var textColour = "#444444";
  for (var i=0;i<position.length;i++){
   var LpositionRotated = rotate(position[i],getAzEl());
   var p = perspective(LpositionRotated[2]); // perspective scaling value
   var LscreenpositionI = canvasScale3D(LpositionRotated,offsetX,offsetY);
   var newText = document.createElementNS("http://www.w3.org/2000/svg","text");
+  var thislabelID = "label_"+thisgroup+"_"+i;
   $(newText).attr({
    "fill": textColour,
    "font-size": fontSize,
+//   "font-weight": "bold",
    "x": LscreenpositionI[0]+labelOffsetX,
    "y": LscreenpositionI[1]+labelOffsetY,
    "transform": "rotate("+textAngle+","+(LscreenpositionI[0]+labelOffsetX)+","+(LscreenpositionI[1]+labelOffsetY)+")",
    "style": "dominant-baseline:middle; text-anchor:left;", // left, middle
    "class": "label",
-   "id": "label_"+i,
+   "id": thislabelID,
   });
 
   // the text node has been created, so insert the node's label

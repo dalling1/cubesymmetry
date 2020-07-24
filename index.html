@@ -2,7 +2,7 @@
 <head>
 <meta charset="utf-8">
 <title>Cube Symmetry</title>
-<link href="https://fonts.googleapis.com/css?family=Fredoka+One|Open+Sans+Condensed:300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Sigmar+One|Fredoka+One|Open+Sans+Condensed:300&display=swap" rel="stylesheet">
 
 <link href="slideCheckbox.css" rel="stylesheet"/>
 <style>
@@ -72,6 +72,7 @@ rect {
 }
 .label {
  pointer-events: none;
+ font-family: "Sigmar One", sans-serif;
 }
 .draggable {
  /* transition: all ease 0.5s; */
@@ -83,6 +84,11 @@ rect {
 }
 .nodehighlightOriginal {
  fill: #ffcc00;
+ filter: url(#f2);
+ /* transition: all ease 0.5s; */
+}
+.labelhighlightOriginal {
+ stroke: #ffffff;
  filter: url(#f2);
  /* transition: all ease 0.5s; */
 }
