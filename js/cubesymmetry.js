@@ -231,30 +231,24 @@ function makeNodesDraggable(thisgroup){
   // test for a legal node near the dragged (now dropped) node's position (not the mouse position):
   var droppedNodePosition = [$("#"+selectedNode).attr("cx"), $("#"+selectedNode).attr("cy")];
 
-//  var legaldestinations = findDestinations(selectedNode);
-//console.log("legaldestinations = "+legaldestinations);
+  var legaldestinations = findDestinations(selectedNode);
+  var proposeddestination = nearestNode(droppedNodePosition[0],droppedNodePosition[1],copygroup); // look for nodes in the cube copy
 
+  if (proposeddestination){
+//   console.log(selectedNode+" legaldestinations = "+legaldestinations+", proposed "+proposeddestination);
 
-
-
-  var destination = nearestNode(droppedNodePosition[0],droppedNodePosition[1],copygroup); // look for nodes in the cube copy
-  if (destination){
    // test if this is a legal destination for the dragged node:
+
    var from = selectedNode.split("_")[2];
-   var to = destination.split("_")[2];
+   var to = proposeddestination.split("_")[2];
 
    var sourcelabel = labelsOriginal[from];
    var destlabel = labelsCopy[to];
+//   var islegal = destlabel.length==0; // for now this is the only test we will make [needs more logic added]
 
-   var islegal = destlabel.length==0; // for now this is the only test we will make [needs more logic added]
 
-/*
- We also need to test:
-  - dragged node's label is not already in the copy (should make it non-draggable after it has been copied once...)
-  - test neighbour relationships
-*/
-
-   if (islegal){
+//   if (islegal){
+   if (legaldestinations.indexOf(proposeddestination)>-1){
     // add the dragged node's label to the destination node (in the copy graph)
     labelsCopy[to] = labelsOriginal[from];
     drawCubeGraph();
@@ -392,6 +386,10 @@ function findNeighbours(nodeID,usegroup=-1){
  return neighbours; // id of each neighbour in the graph copy
 }
 
+
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
+/* ********************************************************************************************* */
 function findDestinations(nodeID){
  /*
   0. check that nodeID has not already been moved to the copy graph
@@ -400,53 +398,61 @@ function findDestinations(nodeID){
   3. return all of the neighbours of N2
  */
  var debug = false;
- var neighbours = findNeighbours(nodeID,originalgroup);
- var destinations = new Array; // obsolete
-  fulldestinations = new Array;
- var finaldestinations = new Array; // initialise
- for (var i=0;i<neighbours.length;i++){ // loop over these neighbours and (if present in the copy) get *their* EMPTY neighbours
-  var thisnode = neighbours[i].split("_")[2]; // array index of this node
-//  if (debug) console.log("A neighbour of "+nodeID+" is "+thisnode);
-  var thisnodecopy = labelsCopy.indexOf(String(thisnode));
-  if (thisnodecopy>-1){
-   fulldestinations.push([]); // add a subarray for this neighbour (existing in the copy graph)
-   var copynode = "node_"+copygroup+"_"+thisnodecopy;
-//   if (debug) console.log("   which has ID "+copynode+" in the copy graph");
-   var copyneighbours = findNeighbours(copynode,copygroup);
-//   if (debug) console.log("        which itself has neighbours "+copyneighbours+" in the copy graph");
-   for (var j=0;j<copyneighbours.length;j++){
-    var thispossibledest = copyneighbours[j].split("_")[2];
+ var finaldestinations = new Array;
 
-    if (labelsCopy[thispossibledest].length==0){
-     // this node is empty, so the dragged/hovered node MIGHT go here
-     // BUT only if this node is a neighbour of any other copy node neighbours
-     destinations.push(copyneighbours[j]);
-     fulldestinations[fulldestinations.length-1].push(copyneighbours[j]);
-//     if (debug) console.log("        ADDING "+copyneighbours[j]+" TO POSSIBLE DESTINATIONS");
+ var Nemptylabels=0;
+ for (var i=0;i<labelsCopy.length;i++){
+  if (labelsCopy[i].length==0) Nemptylabels++;
+ }
+ var allempty = (Nemptylabels==labelsCopy.length);
+
+ if (allempty){
+  // yyyy no copied labels yet, so return all nodes as legal destinations
+  var allcopynodes=document.getElementById("nodegroup"+copygroup).children;
+  for (var i=0;i<allcopynodes.length;i++){
+   finaldestinations.push(allcopynodes[i].id);
+  }
+ } else {
+  if (nodeID){
+   var neighbours = findNeighbours(nodeID,originalgroup);
+   var fulldestinations = new Array;
+   for (var i=0;i<neighbours.length;i++){ // loop over these neighbours and (if present in the copy) get *their* EMPTY neighbours
+    var thisnode = neighbours[i].split("_")[2]; // array index of this node
+    var thisnodecopy = labelsCopy.indexOf(String(thisnode));
+    if (thisnodecopy>-1){
+     fulldestinations.push([]); // add a subarray for this neighbour (existing in the copy graph)
+     var copynode = "node_"+copygroup+"_"+thisnodecopy;
+     var copyneighbours = findNeighbours(copynode,copygroup);
+     for (var j=0;j<copyneighbours.length;j++){
+      var thispossibledest = copyneighbours[j].split("_")[2];
+
+      if (labelsCopy[thispossibledest].length==0){
+       // this node is empty, so the dragged/hovered node MIGHT go here
+       // BUT only if this node is a neighbour of any other copy node neighbours
+       fulldestinations[fulldestinations.length-1].push(copyneighbours[j]);
+      }
+     }
     }
    }
 
-
-  }
-
- }
-
- // Are there any possible destinations?
- if (fulldestinations.length){
-  // Now we have a list (fulldestinations) of empty neighbour-of-neighbour destinations in the copy graph
-  // Count how many neighbours contain the neighbours-of-neighbour:
-  var Ncount=new Array(fulldestinations[0].length);
-  Ncount.fill(0);
-  for (var i=0;i<fulldestinations[0].length;i++){
-   for (var j=0;j<fulldestinations.length;j++){
-    Ncount[i]+= (fulldestinations[j].indexOf(fulldestinations[0][i])>-1 ? 1 : 0 );
-   }
-  }
-  // Now we can finally accept any entries in finaldestination[0] whose Ncount value is equal to the length of finaldestination
-  // ie. any empty neighbour-of-neighbour nodes in the copy graph which *appear in every neighbour's neighbour list*
-  for (var i=0;i<Ncount.length;i++){
-   if (Ncount[i]==fulldestinations.length){
-    finaldestinations.push(fulldestinations[0][i]);
+   // Are there any possible destinations?
+   if (fulldestinations.length){
+    // Now we have a list (fulldestinations) of empty neighbour-of-neighbour destinations in the copy graph
+    // Count how many neighbours contain the neighbours-of-neighbour:
+    var Ncount=new Array(fulldestinations[0].length);
+    Ncount.fill(0);
+    for (var i=0;i<fulldestinations[0].length;i++){
+     for (var j=0;j<fulldestinations.length;j++){
+      Ncount[i]+= (fulldestinations[j].indexOf(fulldestinations[0][i])>-1 ? 1 : 0 );
+     }
+    }
+    // Now we can finally accept any entries in finaldestination[0] whose Ncount value is equal to the length of finaldestination
+    // ie. any empty neighbour-of-neighbour nodes in the copy graph which *appear in every neighbour's neighbour list*
+    for (var i=0;i<Ncount.length;i++){
+     if (Ncount[i]==fulldestinations.length){
+      finaldestinations.push(fulldestinations[0][i]);
+     }
+    }
    }
   }
  }
