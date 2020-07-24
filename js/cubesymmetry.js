@@ -314,16 +314,17 @@ function highlightAllowedNodes(event){
   allnodes = document.getElementsByClassName("node")
   for (var i=0;i<allnodes.length;i++){
    allnodes[i].classList.remove("nodehighlight");
+   allnodes[i].classList.remove("nodehighlightOriginal");
   }
 
-  // add highlighting to the nearest node (in range)
+  // add highlighting to the node closest to the mouse (in range)
   var dx = document.getElementById("thecubegraph").getBoundingClientRect().x;
   var dy = document.getElementById("thecubegraph").getBoundingClientRect().y;
   var mouseX = Math.round(event.clientX-dx);
   var mouseY = Math.round(event.clientY-dy);
   var thenode = nearestNode(mouseX,mouseY,originalgroup);
   if (thenode != null){
-   document.getElementById(thenode).classList.add("nodehighlight");
+   document.getElementById(thenode).classList.add("nodehighlightOriginal");
 
    // get a list of unlabelled nodes in the second graph:
    var emptylabels = new Array(labelsCopy.length);
@@ -346,15 +347,10 @@ function highlightAllowedNodes(event){
      }
     } else {
      // only some are not empty, so find the constraints on the placement of the highlighted node:
-
-     // for now, allow labels to be placed anywhere with an empty label:
-      legaldestinations = findDestinations(thenode);
+     legaldestinations = findDestinations(thenode);
      for (var i=0;i<legaldestinations.length;i++){
-//      $("#"+legaldestinations[i])[0].classList.add("nodehighlight")
-//zzz      legaldestinations[i].classList.add("nodehighlight")
-console.log("dest: "+legaldestinations[i]);
+      $("#"+legaldestinations[i])[0].classList.add("nodehighlight")
      }
-
 
     }
    }
@@ -398,26 +394,26 @@ function findNeighbours(nodeID,usegroup=-1){
 
 function findDestinations(nodeID){
  /*
+  0. check that nodeID has not already been moved to the copy graph
   1. get node's neighbours (N1) in originalgroup
   2. find those nodes in copygroup (N2)
   3. return all of the neighbours of N2
  */
  var debug = false;
-debug=true;
  var neighbours = findNeighbours(nodeID,originalgroup);
  var destinations = new Array; // obsolete
   fulldestinations = new Array;
  var finaldestinations = new Array; // initialise
  for (var i=0;i<neighbours.length;i++){ // loop over these neighbours and (if present in the copy) get *their* EMPTY neighbours
   var thisnode = neighbours[i].split("_")[2]; // array index of this node
-  if (debug) console.log("A neighbour of "+nodeID+" is "+thisnode);
+//  if (debug) console.log("A neighbour of "+nodeID+" is "+thisnode);
   var thisnodecopy = labelsCopy.indexOf(String(thisnode));
   if (thisnodecopy>-1){
    fulldestinations.push([]); // add a subarray for this neighbour (existing in the copy graph)
    var copynode = "node_"+copygroup+"_"+thisnodecopy;
-   if (debug) console.log("   which has ID "+copynode+" in the copy graph");
+//   if (debug) console.log("   which has ID "+copynode+" in the copy graph");
    var copyneighbours = findNeighbours(copynode,copygroup);
-   if (debug) console.log("        which itself has neighbours "+copyneighbours+" in the copy graph");
+//   if (debug) console.log("        which itself has neighbours "+copyneighbours+" in the copy graph");
    for (var j=0;j<copyneighbours.length;j++){
     var thispossibledest = copyneighbours[j].split("_")[2];
 
@@ -426,8 +422,7 @@ debug=true;
      // BUT only if this node is a neighbour of any other copy node neighbours
      destinations.push(copyneighbours[j]);
      fulldestinations[fulldestinations.length-1].push(copyneighbours[j]);
-//     fulldestinations.push(copyneighbours[j]);
-     if (debug) console.log("        ADDING "+copyneighbours[j]+" TO POSSIBLE DESTINATIONS");
+//     if (debug) console.log("        ADDING "+copyneighbours[j]+" TO POSSIBLE DESTINATIONS");
     }
    }
 
@@ -438,7 +433,6 @@ debug=true;
 
  // Are there any possible destinations?
  if (fulldestinations.length){
-//xxx  var finaldestinations = new Array; // initialise
   // Now we have a list (fulldestinations) of empty neighbour-of-neighbour destinations in the copy graph
   // Count how many neighbours contain the neighbours-of-neighbour:
   var Ncount=new Array(fulldestinations[0].length);
@@ -457,11 +451,7 @@ debug=true;
   }
  }
 
- if (debug) console.log("+++ DESTINATIONS +++");
-
- if (debug) console.log(Ncount);
- if (debug) console.log(finaldestinations);
- if (debug) console.log("-----");
+ if (debug) console.log(nodeID+" can be copied to: "+(finaldestinations.length?finaldestinations:"nowhere"));
  return finaldestinations;
 }
 
@@ -469,17 +459,17 @@ debug=true;
 /* ********************************************************************************************* */
 /* ********************************************************************************************* */
 function getAzEl(){
- // parameters of the rotation control pad
+ // parameters of the rotation control pad:
  var mx = document.getElementById("therotator").getBoundingClientRect().width;
  var my = document.getElementById("therotator").getBoundingClientRect().height;
  var cx = $("#joystick").attr("cx");
  var cy = $("#joystick").attr("cy");
  var px = parseFloat(cx/mx);
  var py = parseFloat(cy/my);
- // azimuth and elevation limits
+ // azimuth and elevation limits:
  var azRange = [-180, 180];
  var elRange = [-90, 90];
- // spherical rotation parameters
+ // spherical rotation parameters:
  var az = (azRange[1]-azRange[0])*px + azRange[0];
  var el = (elRange[1]-elRange[0])*py + elRange[0];
 
@@ -522,6 +512,13 @@ function wipeCanvas(){
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
 \
+    <filter id="f2" x="-150%" y="-150%" width="300%" height="300%">\
+      <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
+      <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 0.0 0 0 0 0 0 0.1 0 0 0 1 1 1 0"/>\
+      <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
+      <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
+    </filter>\
+\
     <filter id="f3" x="-150%" y="-150%" width="300%" height="300%">\
       <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
       <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 1 1 0"/>\
@@ -529,7 +526,7 @@ function wipeCanvas(){
       <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />\
     </filter>\
 \
-    <filter id="f2" x="-150%" y="-150%" width="300%" height="300%">\
+    <filter id="f4" x="-150%" y="-150%" width="300%" height="300%">\
       <feOffset result="offOut" in="SourceGraphic" dx="0" dy="0" />\
       <feColorMatrix result = "matrixOut" in = "offOut" type = "matrix" values = "1.0 0 0 0 0 0 1.0 0 0 0 0 0 0.1 0 0 0 1 0 1 0"/>\
       <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="5" />\
