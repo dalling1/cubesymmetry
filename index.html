@@ -157,6 +157,9 @@ output {
  text-align: center;
  margin: 0 4px;
 }
+.hidecontrol {
+ display: none;
+}
 #textgraphs {
  /* height: 80vh; */
  min-height: 150px;
@@ -247,10 +250,10 @@ input[type=range]{
   </div>
 
   <!-- control for SVG box physics boundary (constrain elements within the box on the page) -->
-  <div class="onecontrol">Boundary<br/><label class="switch"><input type="checkbox" id="theboundary" onchange="drawCubeGraph()" ><span class="slider round"></span></label></div>
+  <div class="onecontrol hidecontrol">Boundary<br/><label class="switch"><input type="checkbox" id="theboundary" onchange="drawCubeGraph()" ><span class="slider round"></span></label></div>
 
   <!-- control for changing the edge width based on either the graph the edge is part of or distance from the root node (depth) -->
-  <div class="onecontrol controlwrapper">
+  <div class="onecontrol controlwrapper hidecontrol">
    <span class="wrappertext">Edge thickness</span><br/>
    <div class="slideCheckbox">
     low
@@ -263,7 +266,7 @@ input[type=range]{
   </div>
 
   <!-- control for setting whether the node labels should be on all the time, or only shown when hovering near each node -->
-  <div class="onecontrol controlwrapper">
+  <div class="onecontrol controlwrapper hidecontrol">
    <span class="wrappertext">Show labels</span><br/>
    <div class="slideCheckbox">
     hover
@@ -276,7 +279,7 @@ input[type=range]{
   </div>
 
   <!-- control for choosing which label to show on nodes -->
-  <div class="onecontrol controlwrapper">
+  <div class="onecontrol controlwrapper hidecontrol">
    <span class="wrappertext">Node labels</span><br/>
    <select id="thelabeltype" onchange="showAllLabels();">
     <option value="none">none</option>
@@ -288,11 +291,12 @@ input[type=range]{
 <!--
   <button class="onecontrol" style="font-size:2em;" onclick="drawCubeGraph();">GO</button>
 -->
-  <!-- button to reset the graph -->
+  <!-- button to reset the graph settings -->
+ <button class="onecontrol" style="font-size:2em;" onclick="resetControls();">RESET</button>
  </div>
 
  <!-- some buttons for use once the free product graph has been created -->
- <div class="postcontrols">
+ <div class="postcontrols hidecontrol">
   <!-- save the free product graph as a PDF file -->
   <button onClick="savePDF()" title="Saves a PDF file">Save PDF</button>
   <!-- save the free product graph as a PNG file (optionally with a transparent background) -->
@@ -306,7 +310,7 @@ input[type=range]{
   <svg id="therotator" class="draggable"></svg>
   <div class="rotatorlabel">drag to rotate</div>
  </div>
- <button class="onecontrol" style="font-size:2em;" onclick="setup();">RESET</button>
+ <button class="onecontrol" style="font-size:2em;" onclick="setup();">RESET LABELS</button>
 
  <script src="js/FileSaver.min.js"></script>
  <script src="js/jspdf.min.js"></script>
